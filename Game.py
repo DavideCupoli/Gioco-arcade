@@ -22,16 +22,46 @@ class Provincia:
         self.raggio = raggio
 
 class Camera:
-    def __init__(self, x, y):
+    def __init__(self, x, y, zoom):
 
         self.x = x  
         self.y = y
+        self.zoom = zoom
 
 class Mappa:
     def __init__(self):
+
         self.province = []
-        self.num_righe = 20
-        self.num_province_per_riga = 20
+
+    # modifica la lista 'province'
+    def crea_province(self, num_righe, num_province_per_riga, raggio):
+        y = 0
+        for i in range(num_righe):
+
+            x = 0
+            if i % 2 != 0:
+                x = raggio * math.cos(math.radians(30))
+
+            self.province.append([])
+
+            for j in range(num_province_per_riga):
+                self.province[-1].append(Provincia(x, y, raggio))
+                x += raggio * math.cos(math.radians(30)) * 2
+
+            y += raggio + raggio * math.sin(math.radians(30))
+            
+    def disegna(self):
+
+        for i in self.province:
+            for j in i:
+                arcade.draw_polygon_outline(
+                    punti_esagono(
+                        j.x,
+                        j.y,
+                        j.raggio
+                    ),
+                    arcade.color.RED
+                )
         
 def punti_esagono(cx, cy, r):
     """
@@ -41,7 +71,7 @@ def punti_esagono(cx, cy, r):
     """
     punti = []
     for i in range(6):
-        angolo = math.radians(60 * i)  # 6 lati → 360/6 = 60°
+        angolo = math.radians(60 * i + 90)  # 6 lati → 360/6 = 60°
         x = cx + r * math.cos(angolo)
         y = cy + r * math.sin(angolo)
         punti.append((x, y))
@@ -61,6 +91,13 @@ class GameView(arcade.View):
         super().__init__()
 
         self.background_color = arcade.color.AMAZON
+        
+        self.mappa = Mappa()
+        self.mappa.crea_province(10, 10, 20)
+
+        self.camera = arcade.Camera2D(position=(-100, -100), zoom=1)
+
+        self.cam_direction = [0, 0]
 
         # If you have sprite lists, you should create them here,
         # and set them to None
@@ -77,9 +114,10 @@ class GameView(arcade.View):
 
         # This command should happen before we start drawing. It will clear
         # the screen to the background color, and erase what we drew last frame.
+        self.camera.use()
         self.clear()
 
-        arcade.draw_polygon_filled(punti_esagono(100, 100, 20), arcade.color.RED)
+        self.mappa.disegna()
 
         # Call draw() on all your sprite lists below
 
@@ -89,7 +127,9 @@ class GameView(arcade.View):
         Normally, you'll call update() on the sprite lists that
         need it.
         """
-        pass
+
+        self.camera.position = (self.camera.position[0] + self.cam_direction[0], self.camera.position[1] + self.cam_direction[1])
+        
 
     def on_key_press(self, key, key_modifiers):
         """
@@ -98,13 +138,29 @@ class GameView(arcade.View):
         For a full list of keys, see:
         https://api.arcade.academy/en/latest/arcade.key.html
         """
-        pass
+        speed = 10
 
+        if key == arcade.key.UP:
+            self.cam_direction[1] = speed
+        elif key == arcade.key.DOWN:
+            self.cam_direction[1] = -speed
+        elif key == arcade.key.LEFT:
+            self.cam_direction[0] = -speed
+        elif key == arcade.key.RIGHT:
+            self.cam_direction[0] = speed
+        
     def on_key_release(self, key, key_modifiers):
         """
         Called whenever the user lets off a previously pressed key.
         """
-        pass
+        if key == arcade.key.UP:
+            self.cam_direction[1] = 0
+        elif key == arcade.key.DOWN:
+            self.cam_direction[1] = 0
+        elif key == arcade.key.LEFT:
+            self.cam_direction[0] = 0
+        elif key == arcade.key.RIGHT:
+            self.cam_direction[0] = 0
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
         """
@@ -138,7 +194,6 @@ def main():
 
     # Start the arcade game loop
     arcade.run()
-
 
 if __name__ == "__main__":
     main()
