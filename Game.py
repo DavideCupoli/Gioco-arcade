@@ -21,12 +21,12 @@ class Provincia:
         self.y = y
         self.raggio = raggio
 
-class Camera:
-    def __init__(self, x, y, zoom):
-
-        self.x = x  
-        self.y = y
-        self.zoom = zoom
+        self.est = None
+        self.ovest = None
+        self.nordest = None
+        self.nordovest = None
+        self.sudest = None
+        self.sudovest = None
 
 class Mappa:
     def __init__(self):
@@ -35,6 +35,7 @@ class Mappa:
 
     # modifica la lista 'province'
     def crea_province(self, num_righe, num_province_per_riga, raggio):
+
         y = 0
         for i in range(num_righe):
 
@@ -49,6 +50,36 @@ class Mappa:
                 x += raggio * math.cos(math.radians(30)) * 2
 
             y += raggio + raggio * math.sin(math.radians(30))
+
+        len_fila = len(self.province[0])
+        for i in range(0, len(self.province)):
+            for j in range(0, len_fila):
+                # est
+                if j - 1 >= 0:
+                    self.province[i][j].est = self.province[i][j - 1]
+                # ovest
+                if j + 1 < len_fila:
+                    self.province[i][j].ovest = self.province[i][j + 1]
+                # sudest
+                if i - 1 >= 0 and i % 2 == 0:
+                    self.province[i][j].sudest = self.province[i - 1][j]
+                if i - 1 >= 0 and i % 2 != 0 and j + 1 < len_fila:
+                    self.province[i][j].sudest = self.province[i - 1][j + 1]
+                # sudovest
+                if i - 1 >= 0 and i % 2 == 0 and j - 1 >= 0:
+                    self.province[i][j].sudovest = self.province[i - 1][j - 1]
+                if i - 1 >= 0 and i % 2 != 0:
+                    self.province[i][j].sudovest = self.province[i - 1][j]
+                # nordest
+                if i + 1 < len(self.province) and i % 2 == 0:
+                    self.province[i][j].nordest = self.province[i + 1][j]
+                if i + 1 < len(self.province) and i % 2 != 0 and j + 1 < len_fila:
+                    self.province[i][j].nordest = self.province[i + 1][j + 1]
+                # nordovest
+                if i + 1 < len(self.province) and i % 2 == 0 and j - 1 >= 0:
+                    self.province[i][j].nordovest = self.province[i + 1][j - 1]
+                if i + 1 < len(self.province) and i % 2 != 0:
+                    self.province[i][j].nordovest = self.province[i + 1][j]
             
     def disegna(self):
 
@@ -99,6 +130,8 @@ class GameView(arcade.View):
 
         self.cam_direction = [0, 0]
 
+        self.provincia_selezionata = self.mappa.province[0][0]
+
         # If you have sprite lists, you should create them here,
         # and set them to None
 
@@ -119,6 +152,15 @@ class GameView(arcade.View):
 
         self.mappa.disegna()
 
+        arcade.draw_polygon_filled(
+            punti_esagono(
+                self.provincia_selezionata.x,
+                self.provincia_selezionata.y,
+                self.provincia_selezionata.raggio
+            ),
+            arcade.color.GREEN
+        )
+
         # Call draw() on all your sprite lists below
 
     def on_update(self, delta_time):
@@ -130,6 +172,9 @@ class GameView(arcade.View):
 
         self.camera.position = (self.camera.position[0] + self.cam_direction[0], self.camera.position[1] + self.cam_direction[1])
         
+    def cambia_provincia(self, provincia):
+        if provincia != None:
+            self.provincia_selezionata = provincia
 
     def on_key_press(self, key, key_modifiers):
         """
@@ -142,12 +187,25 @@ class GameView(arcade.View):
 
         if key == arcade.key.UP:
             self.cam_direction[1] = speed
-        elif key == arcade.key.DOWN:
+        if key == arcade.key.DOWN:
             self.cam_direction[1] = -speed
-        elif key == arcade.key.LEFT:
+        if key == arcade.key.LEFT:
             self.cam_direction[0] = -speed
-        elif key == arcade.key.RIGHT:
+        if key == arcade.key.RIGHT:
             self.cam_direction[0] = speed
+
+        if key == arcade.key.W:
+            self.cambia_provincia(self.provincia_selezionata.nordovest)
+        if key == arcade.key.E:
+            self.cambia_provincia(self.provincia_selezionata.nordest)
+        if key == arcade.key.H:
+            self.cambia_provincia(self.provincia_selezionata.est)
+        if key == arcade.key.L:
+            self.cambia_provincia(self.provincia_selezionata.ovest)
+        if key == arcade.key.S:
+            self.cambia_provincia(self.provincia_selezionata.sudovest)
+        if key == arcade.key.D:
+            self.cambia_provincia(self.provincia_selezionata.sudest)
         
     def on_key_release(self, key, key_modifiers):
         """
