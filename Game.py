@@ -1,26 +1,102 @@
-"""
-Starting Template
-
-Once you have learned how to use classes, you can begin your program with this
-template.
-
-If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.starting_template
-"""
 import arcade
 import math
+import random
 
+# COSTANTI
+
+# informazioni della finestra di gioco 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
-WINDOW_TITLE = "Starting Template"
+WINDOW_TITLE = "Gioco di strategia"
+
+# velocità con cui si sposta la visuale
+CAM_SPEED = 200
+
+# colori nel gioco usati dagli stati
+COLORI_STATI = [
+    arcade.color.RED,
+    arcade.color.YELLOW,
+    arcade.color.GREEN,
+    arcade.color.ORANGE,
+    arcade.color.CYAN,
+    arcade.color.PURPLE
+]
+
+def punti_esagono(cx, cy, r):
+    """
+    Restituisce la lista dei punti (x, y) che formano un esagono regolare
+    centrato in (cx, cy) con raggio r.
+    L'angolo 0° è sulla destra e i vertici proseguono in senso antiorario.
+    """
+    punti = []
+    for i in range(6):
+        angolo = math.radians(60 * i + 90)  # 6 lati → 360/6 = 60°
+        x = cx + r * math.cos(angolo)
+        y = cy + r * math.sin(angolo)
+        punti.append((x, y))
+    return punti
+
+# DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
+
+class Stato:
+
+    def __init__(self):
+
+        self.elenco_province = []
+        self.denaro = 0
+        self.colore = None
+    
+        self.forma = None
+
+    # aggiorna i vertici che compongono la forma dello Stato (la linea del confine)
+    def aggiorna_forma(self):
+        
+        # viene creato un mesh unico che unisce ogni esagono (ogni provincia) per rendere la renderizzazione più efficiente
+        self.forma = arcade.shape_list.ShapeElementList(True)
+        
+        for i in self.elenco_province:
+            esagono = arcade.shape_list.create_polygon(
+                punti_esagono(
+                    i.x,
+                    i.y,
+                    i.raggio
+                ),
+                self.colore
+            )
+            self.forma.append(esagono)
+
+    # viene assegnato un colore allo Stato
+    def scegli_colore(self, colori_stati_disponibili):
+
+        if len(colori_stati_disponibili) != 0:
+            # il colore viene scelto casualmente
+            self.colore = random.choice(colori_stati_disponibili)
+            colori_stati_disponibili.remove(self.colore)
+        else:
+            print('Non ci sono altri colori disponibili')
+        return colori_stati_disponibili
+
+    # viene aggiunta una provincia allo Stato; essa cambia la propria appartenenza
+    def aggiungi_provincia(self, provincia):
+        self.elenco_province.append(provincia)
+        provincia.stato = self
+
+    # viene renderizzato lo Stato
+    def disegna(self):
+        if self.forma == None:
+            self.aggiorna_forma()
+        self.forma.draw()
 
 class Provincia:
 
     def __init__(self, x, y, raggio):
+
         self.x = x
         self.y = y
         self.raggio = raggio
+        self.stato = None
 
+        # province vicine
         self.est = None
         self.ovest = None
         self.nordest = None
@@ -33,7 +109,7 @@ class Mappa:
 
         self.province = []
 
-    # modifica la lista 'province'
+    # aggiunge le province alla mappa: modifica la lista province
     def crea_province(self, num_righe, num_province_per_riga, raggio):
 
         y = 0
@@ -50,6 +126,8 @@ class Mappa:
                 x += raggio * math.cos(math.radians(30)) * 2
 
             y += raggio + raggio * math.sin(math.radians(30))
+
+        # a ogni provincia viene riferito quali sono le province vicine
 
         len_fila = len(self.province[0])
         for i in range(0, len(self.province)):
@@ -81,7 +159,8 @@ class Mappa:
                 if i + 1 < len(self.province) and i % 2 != 0:
                     self.province[i][j].nordovest = self.province[i + 1][j]
             
-    def disegna(self):
+    # disegna la scacchiera esagonale
+    def disegna_confini(self):
 
         for i in self.province:
             for j in i:
@@ -91,49 +170,57 @@ class Mappa:
                         j.y,
                         j.raggio
                     ),
-                    arcade.color.RED
+                    arcade.color.BLACK,
+                    1
                 )
-        
-def punti_esagono(cx, cy, r):
-    """
-    Restituisce la lista dei punti (x, y) che formano un esagono regolare
-    centrato in (cx, cy) con raggio r.
-    L'angolo 0° è sulla destra e i vertici proseguono in senso antiorario.
-    """
-    punti = []
-    for i in range(6):
-        angolo = math.radians(60 * i + 90)  # 6 lati → 360/6 = 60°
-        x = cx + r * math.cos(angolo)
-        y = cy + r * math.sin(angolo)
-        punti.append((x, y))
-    return punti
 
+# CLASSE PRINCIPALE
 
 class GameView(arcade.View):
-    """
-    Main application class.
 
-    NOTE: Go ahead and delete the methods you don't need.
-    If you do need a method, delete the 'pass' and replace it
-    with your own code. Don't leave 'pass' in this program.
-    """
-
+    # inizializzazione oggetti principali
     def __init__(self):
+
         super().__init__()
 
+        # colore sfondo
         self.background_color = arcade.color.AMAZON
         
+        # inizializzazione mappa
         self.mappa = Mappa()
         self.mappa.crea_province(10, 10, 20)
 
-        self.camera = arcade.Camera2D(position=(-100, -100), zoom=1)
+        # lista di tutti gli Stati nel gioco
+        self.stati = []
 
+        # inizializzazione della visuale (camera) nel gioco
+        self.camera = arcade.Camera2D(position=(0, 0), zoom=1)
+
+        # direzione verso cui si muove la visuale
         self.cam_direction = [0, 0]
 
+        # provincia 
         self.provincia_selezionata = self.mappa.province[0][0]
 
+        # colori che possono essere scelti dagli stati
+        self.colori_stati_disponibili = COLORI_STATI.copy()
+
+        stato = Stato()
+        self.colori_stati_disponibili = stato.scegli_colore(self.colori_stati_disponibili)
+        self.stati.append(stato)
+
+        # aggiunta dello stato alle province
+        for i in self.mappa.province:
+            for j in i:
+                self.stati[0].aggiungi_provincia(j)
+            
         # If you have sprite lists, you should create them here,
         # and set them to None
+
+    # cambia la provincia selezionata dall'utente
+    def cambia_provincia(self, provincia):
+        if provincia != None:
+            self.provincia_selezionata = provincia
 
     def reset(self):
         """Reset the game to the initial state."""
@@ -145,13 +232,17 @@ class GameView(arcade.View):
         Render the screen.
         """
 
-        # This command should happen before we start drawing. It will clear
-        # the screen to the background color, and erase what we drew last frame.
+        # utilizza la posizione della camera per disegnare le figure sullo schermo
         self.camera.use()
+        # pulisce lo schermo
         self.clear()
 
-        self.mappa.disegna()
+        self.stati[0].disegna()
 
+        # disegna gli esagoni che delimitano le province
+        self.mappa.disegna_confini()
+
+        # disegna la provincia selezionata
         arcade.draw_polygon_filled(
             punti_esagono(
                 self.provincia_selezionata.x,
@@ -164,43 +255,33 @@ class GameView(arcade.View):
         # Call draw() on all your sprite lists below
 
     def on_update(self, delta_time):
-        """
-        All the logic to move, and the game logic goes here.
-        Normally, you'll call update() on the sprite lists that
-        need it.
-        """
 
-        self.camera.position = (self.camera.position[0] + self.cam_direction[0], self.camera.position[1] + self.cam_direction[1])
-        
-    def cambia_provincia(self, provincia):
-        if provincia != None:
-            self.provincia_selezionata = provincia
+        # aggiorna la posizione della camera
+        self.camera.position = (
+            self.camera.position[0] + (self.cam_direction[0] * delta_time),
+            self.camera.position[1] + (self.cam_direction[1] * delta_time)
+        )
 
     def on_key_press(self, key, key_modifiers):
-        """
-        Called whenever a key on the keyboard is pressed.
 
-        For a full list of keys, see:
-        https://api.arcade.academy/en/latest/arcade.key.html
-        """
-        speed = 10
-
+        # cambia la direzione verso cui si sposta la camera
         if key == arcade.key.UP:
-            self.cam_direction[1] = speed
+            self.cam_direction[1] = CAM_SPEED
         if key == arcade.key.DOWN:
-            self.cam_direction[1] = -speed
+            self.cam_direction[1] = -CAM_SPEED
         if key == arcade.key.LEFT:
-            self.cam_direction[0] = -speed
+            self.cam_direction[0] = -CAM_SPEED
         if key == arcade.key.RIGHT:
-            self.cam_direction[0] = speed
+            self.cam_direction[0] = CAM_SPEED
 
+        # cambia la provincia selezionata
         if key == arcade.key.W:
             self.cambia_provincia(self.provincia_selezionata.nordovest)
         if key == arcade.key.E:
             self.cambia_provincia(self.provincia_selezionata.nordest)
-        if key == arcade.key.H:
+        if key == arcade.key.A:
             self.cambia_provincia(self.provincia_selezionata.est)
-        if key == arcade.key.L:
+        if key == arcade.key.F:
             self.cambia_provincia(self.provincia_selezionata.ovest)
         if key == arcade.key.S:
             self.cambia_provincia(self.provincia_selezionata.sudovest)
@@ -211,6 +292,7 @@ class GameView(arcade.View):
         """
         Called whenever the user lets off a previously pressed key.
         """
+        # la camera non si sposta più quando vengono rilasciati i tasti delle frecce
         if key == arcade.key.UP:
             self.cam_direction[1] = 0
         elif key == arcade.key.DOWN:
