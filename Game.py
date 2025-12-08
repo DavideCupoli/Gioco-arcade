@@ -12,6 +12,10 @@ WINDOW_TITLE = "Gioco di strategia"
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
 
+# di quanto aumenta/diminuisce lo zoom
+ZOOM = 0.25
+MAXIMUM_ZOOM = 2
+
 # colori nel gioco usati dagli stati
 COLORI_STATI = [
     arcade.color.RED,
@@ -19,7 +23,12 @@ COLORI_STATI = [
     arcade.color.GREEN,
     arcade.color.ORANGE,
     arcade.color.CYAN,
-    arcade.color.PURPLE
+    arcade.color.PURPLE,
+    arcade.color.BROWN,
+    arcade.color.GRAY,
+    arcade.color.PINK,
+    arcade.color.BLUE,
+    arcade.color.CARIBBEAN_GREEN
 ]
 
 def punti_esagono(cx, cy, r):
@@ -65,7 +74,7 @@ class Stato:
             )
             self.forma.append(esagono)
 
-    # viene assegnato un colore allo Stato
+    # viene assegnato un colore allo Stato; ritorna i colori rimanenti
     def scegli_colore(self, colori_stati_disponibili):
 
         if len(colori_stati_disponibili) != 0:
@@ -80,6 +89,27 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         self.elenco_province.append(provincia)
         provincia.stato = self
+
+    # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
+    def espandi(self):
+
+        province_aggiunte = 0
+        for i in range(len(self.elenco_province)):
+            vicine = [
+                self.elenco_province[i].est,
+                self.elenco_province[i].ovest,
+                self.elenco_province[i].nordest,
+                self.elenco_province[i].nordovest,
+                self.elenco_province[i].sudest,
+                self.elenco_province[i].sudovest
+            ]
+
+            for j in vicine:
+                if j != None and j.stato == None:
+                    self.aggiungi_provincia(j)
+                    province_aggiunte += 1
+
+        return province_aggiunte
 
     # viene renderizzato lo Stato
     def disegna(self):
@@ -188,7 +218,7 @@ class GameView(arcade.View):
         
         # inizializzazione mappa
         self.mappa = Mappa()
-        self.mappa.crea_province(10, 10, 20)
+        self.mappa.crea_province(50, 50, 20)
 
         # lista di tutti gli Stati nel gioco
         self.stati = []
@@ -205,15 +235,9 @@ class GameView(arcade.View):
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
 
-        stato = Stato()
-        self.colori_stati_disponibili = stato.scegli_colore(self.colori_stati_disponibili)
-        self.stati.append(stato)
+        self.aggiungi_stati(10)
+        self.espandi_stati()
 
-        # aggiunta dello stato alle province
-        for i in self.mappa.province:
-            for j in i:
-                self.stati[0].aggiungi_provincia(j)
-            
         # If you have sprite lists, you should create them here,
         # and set them to None
 
@@ -221,6 +245,30 @@ class GameView(arcade.View):
     def cambia_provincia(self, provincia):
         if provincia != None:
             self.provincia_selezionata = provincia
+
+    # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
+    def aggiungi_stati(self, n_stati):
+        for i in range(n_stati):
+            stato = Stato()
+            self.colori_stati_disponibili = stato.scegli_colore(self.colori_stati_disponibili)
+
+            num_righe = len(self.mappa.province)
+            num_colonne = len(self.mappa.province[0])
+
+            r = random.randint(num_righe // 5, num_righe // 5 * 4)
+            c = random.randint(num_colonne // 5, num_colonne // 5 * 4)
+            provincia = self.mappa.province[r][c]
+            stato.aggiungi_provincia(provincia)
+            self.stati.append(stato)
+
+    # gli stati si espandono a turno
+    def espandi_stati(self):
+
+        province = len(self.mappa.province) * len(self.mappa.province[0]) - len(self.stati)
+        i = 0
+        while province > 0:
+            province -= self.stati[i % len(self.stati)].espandi()
+            i += 1
 
     def reset(self):
         """Reset the game to the initial state."""
@@ -237,10 +285,11 @@ class GameView(arcade.View):
         # pulisce lo schermo
         self.clear()
 
-        self.stati[0].disegna()
+        for i in self.stati:
+            i.disegna()
 
         # disegna gli esagoni che delimitano le province
-        self.mappa.disegna_confini()
+        #self.mappa.disegna_confini()
 
         # disegna la provincia selezionata
         arcade.draw_polygon_filled(
@@ -249,7 +298,7 @@ class GameView(arcade.View):
                 self.provincia_selezionata.y,
                 self.provincia_selezionata.raggio
             ),
-            arcade.color.GREEN
+            arcade.color.WHITE
         )
 
         # Call draw() on all your sprite lists below
@@ -258,21 +307,27 @@ class GameView(arcade.View):
 
         # aggiorna la posizione della camera
         self.camera.position = (
-            self.camera.position[0] + (self.cam_direction[0] * delta_time),
-            self.camera.position[1] + (self.cam_direction[1] * delta_time)
+            self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
+            self.camera.position[1] + (self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom)
         )
 
     def on_key_press(self, key, key_modifiers):
 
         # cambia la direzione verso cui si sposta la camera
         if key == arcade.key.UP:
-            self.cam_direction[1] = CAM_SPEED
+            self.cam_direction[1] = 1
         if key == arcade.key.DOWN:
-            self.cam_direction[1] = -CAM_SPEED
+            self.cam_direction[1] = -1
         if key == arcade.key.LEFT:
-            self.cam_direction[0] = -CAM_SPEED
+            self.cam_direction[0] = -1
         if key == arcade.key.RIGHT:
-            self.cam_direction[0] = CAM_SPEED
+            self.cam_direction[0] = 1
+
+        # cambia lo zoom
+        if key == arcade.key.NUM_ADD and self.camera.zoom < MAXIMUM_ZOOM:
+            self.camera.zoom += ZOOM
+        if key == arcade.key.NUM_SUBTRACT and self.camera.zoom > ZOOM:
+            self.camera.zoom -= ZOOM
 
         # cambia la provincia selezionata
         if key == arcade.key.W:
@@ -287,7 +342,7 @@ class GameView(arcade.View):
             self.cambia_provincia(self.provincia_selezionata.sudovest)
         if key == arcade.key.D:
             self.cambia_provincia(self.provincia_selezionata.sudest)
-        
+
     def on_key_release(self, key, key_modifiers):
         """
         Called whenever the user lets off a previously pressed key.
