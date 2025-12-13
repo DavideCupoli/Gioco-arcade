@@ -9,6 +9,11 @@ WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Gioco di strategia"
 
+MAPPA_RIGHE = 30
+MAPPA_COLONNE = 30
+RAGGIO = 50
+NUM_STATI = 10
+
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
 
@@ -31,19 +36,52 @@ COLORI_STATI = [
     arcade.color.CARIBBEAN_GREEN
 ]
 
-def punti_esagono(cx, cy, r):
-    """
-    Restituisce la lista dei punti (x, y) che formano un esagono regolare
-    centrato in (cx, cy) con raggio r.
-    L'angolo 0° è sulla destra e i vertici proseguono in senso antiorario.
-    """
-    punti = []
-    for i in range(6):
-        angolo = math.radians(60 * i + 90)  # 6 lati → 360/6 = 60°
-        x = cx + r * math.cos(angolo)
-        y = cy + r * math.sin(angolo)
-        punti.append((x, y))
-    return punti
+# FUNZIONI MATEMATICHE/DI RENDERING
+
+class Esagono:
+
+    def __init__(self, centro_x, centro_y, raggio):
+        self.centro_x = centro_x
+        self.centro_y = centro_y
+        self.raggio = raggio
+
+        self.sopra = []
+        self.sotto = []
+        self.sinistra = []
+        self.destra = []
+
+        self.crea_vertici()
+
+    def crea_vertici(self):
+
+        gradi = 90 - (360 / 6)
+        for i in range(6):
+            x = (math.cos(math.radians(gradi)) * self.raggio) + self.centro_x
+            y = (math.sin(math.radians(gradi)) * self.raggio) + self.centro_y
+            if i <= 2:
+                self.sopra.append((x, y))
+            if i >= 2 and i <= 3:
+                self.sinistra.append((x, y))
+            if i >= 3 and i <= 5:
+                self.sotto.append((x, y))
+            gradi += 360 / 6
+
+        self.destra.append(self.sotto[-1])
+        self.destra.append(self.sopra[0])
+
+    def punti(self):
+        punti = []
+        punti.extend(self.sopra)
+        punti.extend(self.sinistra)
+        punti.extend(self.sotto)
+        punti.extend(self.destra)
+
+        nuovi_punti = []
+
+        for i in punti:
+            if not i in nuovi_punti:
+                nuovi_punti.append(i)
+        return nuovi_punti
 
 # DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
 
@@ -61,18 +99,12 @@ class Stato:
     def aggiorna_forma(self):
         
         # viene creato un mesh unico che unisce ogni esagono (ogni provincia) per rendere la renderizzazione più efficiente
-        self.forma = arcade.shape_list.ShapeElementList(True)
+        self.forma = arcade.shape_list.ShapeElementList()
         
         for i in self.elenco_province:
-            esagono = arcade.shape_list.create_polygon(
-                punti_esagono(
-                    i.x,
-                    i.y,
-                    i.raggio
-                ),
-                self.colore
-            )
-            self.forma.append(esagono)
+            esagono = Esagono(i.x, i.y, i.raggio)
+            shape_list = arcade.shape_list.create_polygon(esagono.punti(), self.colore)
+            self.forma.append(shape_list)
 
     # viene assegnato un colore allo Stato; ritorna i colori rimanenti
     def scegli_colore(self, colori_stati_disponibili):
@@ -89,25 +121,35 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         self.elenco_province.append(provincia)
         provincia.stato = self
+        self.aggiorna_forma()
 
     # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
     def espandi(self):
 
         province_aggiunte = 0
-        for i in range(len(self.elenco_province)):
+        massimo_province = 6
+        prov_da_scegliere = self.elenco_province.copy()
+        while len(prov_da_scegliere) > 0:
+            p = random.choice(prov_da_scegliere)
             vicine = [
-                self.elenco_province[i].est,
-                self.elenco_province[i].ovest,
-                self.elenco_province[i].nordest,
-                self.elenco_province[i].nordovest,
-                self.elenco_province[i].sudest,
-                self.elenco_province[i].sudovest
+                p.est,
+                p.ovest,
+                p.nordest,
+                p.nordovest,
+                p.sudest,
+                p.sudovest
             ]
 
-            for j in vicine:
-                if j != None and j.stato == None:
-                    self.aggiungi_provincia(j)
+            while len(vicine) > 0:
+                v = random.choice(vicine)
+                if v != None and v.stato == None:
+                    self.aggiungi_provincia(v)
                     province_aggiunte += 1
+                if province_aggiunte == massimo_province:
+                    return massimo_province
+                vicine.remove(v)
+
+            prov_da_scegliere.remove(p)
 
         return province_aggiunte
 
@@ -190,19 +232,19 @@ class Mappa:
                     self.province[i][j].nordovest = self.province[i + 1][j]
             
     # disegna la scacchiera esagonale
-    def disegna_confini(self):
+    def disegna_scacchiera(self):
 
+        linee = []
         for i in self.province:
             for j in i:
-                arcade.draw_polygon_outline(
-                    punti_esagono(
-                        j.x,
-                        j.y,
-                        j.raggio
-                    ),
-                    arcade.color.BLACK,
-                    1
-                )
+                esagono = Esagono(j.x, j.y, j.raggio)
+                punti = esagono.punti()
+                for i in range(len(punti)):
+                    start = punti[i]
+                    end = punti[(i + 1) % len(punti)]
+                    linee.append(start)
+                    linee.append(end)
+        arcade.draw_lines(linee, arcade.color.BLACK, 1)
 
 # CLASSE PRINCIPALE
 
@@ -218,7 +260,7 @@ class GameView(arcade.View):
         
         # inizializzazione mappa
         self.mappa = Mappa()
-        self.mappa.crea_province(50, 50, 20)
+        self.mappa.crea_province(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO)
 
         # lista di tutti gli Stati nel gioco
         self.stati = []
@@ -235,7 +277,7 @@ class GameView(arcade.View):
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
 
-        self.aggiungi_stati(10)
+        self.aggiungi_stati(NUM_STATI)
         self.espandi_stati()
 
         # If you have sprite lists, you should create them here,
@@ -255,8 +297,10 @@ class GameView(arcade.View):
             num_righe = len(self.mappa.province)
             num_colonne = len(self.mappa.province[0])
 
-            r = random.randint(num_righe // 5, num_righe // 5 * 4)
-            c = random.randint(num_colonne // 5, num_colonne // 5 * 4)
+            #r = random.randint(num_righe // 5, num_righe // 5 * 4)
+            #c = random.randint(num_colonne // 5, num_colonne // 5 * 4)
+            r = random.randint(0, num_righe - 1)
+            c = random.randint(0, num_colonne - 1)
             provincia = self.mappa.province[r][c]
             stato.aggiungi_provincia(provincia)
             self.stati.append(stato)
@@ -289,15 +333,12 @@ class GameView(arcade.View):
             i.disegna()
 
         # disegna gli esagoni che delimitano le province
-        #self.mappa.disegna_confini()
+        self.mappa.disegna_scacchiera()
 
         # disegna la provincia selezionata
+        esagono = Esagono(self.provincia_selezionata.x, self.provincia_selezionata.y, self.provincia_selezionata.raggio)
         arcade.draw_polygon_filled(
-            punti_esagono(
-                self.provincia_selezionata.x,
-                self.provincia_selezionata.y,
-                self.provincia_selezionata.raggio
-            ),
+            esagono.punti(),
             arcade.color.WHITE
         )
 
