@@ -1,6 +1,7 @@
 import arcade
 import math
 import random
+from pyglet.graphics import Batch
 
 # COSTANTI
 
@@ -9,17 +10,21 @@ WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Gioco di strategia"
 
-MAPPA_RIGHE = 30
-MAPPA_COLONNE = 30
-RAGGIO = 50
-NUM_STATI = 10
+MAPPA_RIGHE = 10
+MAPPA_COLONNE = 10
+RAGGIO = 30
+NUM_STATI = 2
+ABITANTI_PER_PROVINCIA = 5000
+COSTO_SOLDATO = 10
+
+FONT_SIZE_TRUPPE = 10
 
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
 
 # di quanto aumenta/diminuisce lo zoom
 ZOOM = 0.25
-MAXIMUM_ZOOM = 2
+MAXIMUM_ZOOM = 1.5
 
 # colori nel gioco usati dagli stati
 COLORI_STATI = [
@@ -49,6 +54,7 @@ class Esagono:
         self.sotto = []
         self.sinistra = []
         self.destra = []
+        self.punti = []
 
         self.crea_vertici()
 
@@ -64,24 +70,11 @@ class Esagono:
                 self.sinistra.append((x, y))
             if i >= 3 and i <= 5:
                 self.sotto.append((x, y))
+            self.punti.append((x, y))
             gradi += 360 / 6
 
         self.destra.append(self.sotto[-1])
         self.destra.append(self.sopra[0])
-
-    def punti(self):
-        punti = []
-        punti.extend(self.sopra)
-        punti.extend(self.sinistra)
-        punti.extend(self.sotto)
-        punti.extend(self.destra)
-
-        nuovi_punti = []
-
-        for i in punti:
-            if not i in nuovi_punti:
-                nuovi_punti.append(i)
-        return nuovi_punti
 
 # DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
 
@@ -90,10 +83,12 @@ class Stato:
     def __init__(self):
 
         self.elenco_province = []
-        self.denaro = 0
         self.colore = None
-    
         self.forma = None
+
+        self.soldi = 1000
+        # altri Stati con cui lo Stato è in guerra
+        self.guerra = []
 
     # aggiorna i vertici che compongono la forma dello Stato (la linea del confine)
     def aggiorna_forma(self):
@@ -102,8 +97,8 @@ class Stato:
         self.forma = arcade.shape_list.ShapeElementList()
         
         for i in self.elenco_province:
-            esagono = Esagono(i.x, i.y, i.raggio)
-            shape_list = arcade.shape_list.create_polygon(esagono.punti(), self.colore)
+            punti = i.esagono.punti
+            shape_list = arcade.shape_list.create_polygon(punti, self.colore)
             self.forma.append(shape_list)
 
     # viene assegnato un colore allo Stato; ritorna i colori rimanenti
@@ -159,6 +154,23 @@ class Stato:
             self.aggiorna_forma()
         self.forma.draw()
 
+    def mostra_truppe(self):
+        batch = Batch()
+        numeri = []
+        for p in self.elenco_province:
+            if p.soldati != 0: 
+                numeri.append(arcade.Text(
+                    str(p.soldati),
+                    p.x - (p.raggio / 5 * 4),
+                    p.y - (FONT_SIZE_TRUPPE / 2),
+                    arcade.color.BLACK,
+                    font_size = FONT_SIZE_TRUPPE,
+                    width = (p.raggio * 2) / 5 * 4,
+                    align = 'center',
+                    batch = batch
+                ))
+        batch.draw()
+
 class Provincia:
 
     def __init__(self, x, y, raggio):
@@ -167,6 +179,10 @@ class Provincia:
         self.y = y
         self.raggio = raggio
         self.stato = None
+        self.esagono = Esagono(x, y, raggio)
+
+        self.abitanti = ABITANTI_PER_PROVINCIA
+        self.soldati = 100
 
         # province vicine
         self.est = None
@@ -237,14 +253,56 @@ class Mappa:
         linee = []
         for i in self.province:
             for j in i:
-                esagono = Esagono(j.x, j.y, j.raggio)
-                punti = esagono.punti()
+                punti = j.esagono.punti
                 for i in range(len(punti)):
                     start = punti[i]
                     end = punti[(i + 1) % len(punti)]
                     linee.append(start)
                     linee.append(end)
         arcade.draw_lines(linee, arcade.color.BLACK, 1)
+
+class GestoreInterfaccia:
+
+    def __init__(self, stato_player, provincia_selezionata):
+        self.muovi_soldati = False
+        self.provincia_precedente = None
+        self.soldati_da_muovere = 0
+        self.stato = stato_player
+        self.provincia_selezionata = provincia_selezionata
+
+    def input_muovi_soldati(self):
+        if self.muovi_soldati:
+            self.muovi_soldati = False
+            return
+        self.muovi_soldati = True
+        soldati = int(input('Quanti soldati muovere? '))
+        if soldati > self.provincia_selezionata.soldati:
+            print(f'Numero soldati selezionato maggiore a soldati presenti ({self.provincia_selezionata.soldati})')
+            self.muovi_soldati = False
+        if soldati < 0:
+            print('Numero minore di 0')
+            self.muovi_soldati = False
+        else:
+            self.soldati_da_muovere = soldati
+            self.provincia_precedente = self.provincia_selezionata
+
+    def muovi_esercito(self):
+        if self.muovi_soldati and (self.provincia_selezionata.stato == self.stato or self.provincia_selezionata.stato in self.stato.guerra):
+            self.provincia_selezionata.soldati += self.soldati_da_muovere
+            self.provincia_precedente.soldati -= self.soldati_da_muovere
+            self.soldati_da_muovere = 0
+            self.muovi_soldati = False
+            self.provincia_precedente = None
+   
+    def input_arruola_soldati(self):
+        soldati = int(input(f'Quanti soldati arruolare (Costo di un soldato: {COSTO_SOLDATO})? '))
+        if soldati > self.provincia_selezionata.abitanti / 4:
+            print(f'Numero di soldati oltre {int(provincia_selezionata.abitanti / 4)}')
+        elif self.stato.soldi < COSTO_SOLDATO * soldati:
+            print(f'Soldi insufficienti. Richiesti: {COSTO_SOLDATO * soldati}')
+        else:
+            self.provincia_selezionata.soldati += soldati
+            self.stato.soldi -= COSTO_SOLDATO * soldati
 
 # CLASSE PRINCIPALE
 
@@ -271,8 +329,8 @@ class GameView(arcade.View):
         # direzione verso cui si muove la visuale
         self.cam_direction = [0, 0]
 
-        # provincia 
         self.provincia_selezionata = self.mappa.province[0][0]
+        print(self.provincia_selezionata)
 
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
@@ -280,13 +338,16 @@ class GameView(arcade.View):
         self.aggiungi_stati(NUM_STATI)
         self.espandi_stati()
 
-        # If you have sprite lists, you should create them here,
-        # and set them to None
+        self.stato_player = self.stati[0]
+
+        self.gestore = GestoreInterfaccia(self.stato_player, self.provincia_selezionata)
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, provincia):
         if provincia != None:
             self.provincia_selezionata = provincia
+            self.gestore.provincia_selezionata = provincia
+        self.gestore.muovi_esercito()
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -297,8 +358,6 @@ class GameView(arcade.View):
             num_righe = len(self.mappa.province)
             num_colonne = len(self.mappa.province[0])
 
-            #r = random.randint(num_righe // 5, num_righe // 5 * 4)
-            #c = random.randint(num_colonne // 5, num_colonne // 5 * 4)
             r = random.randint(0, num_righe - 1)
             c = random.randint(0, num_colonne - 1)
             provincia = self.mappa.province[r][c]
@@ -324,25 +383,30 @@ class GameView(arcade.View):
         Render the screen.
         """
 
-        # utilizza la posizione della camera per disegnare le figure sullo schermo
-        self.camera.use()
         # pulisce lo schermo
         self.clear()
 
-        for i in self.stati:
-            i.disegna()
-
-        # disegna gli esagoni che delimitano le province
-        self.mappa.disegna_scacchiera()
-
-        # disegna la provincia selezionata
-        esagono = Esagono(self.provincia_selezionata.x, self.provincia_selezionata.y, self.provincia_selezionata.raggio)
-        arcade.draw_polygon_filled(
-            esagono.punti(),
-            arcade.color.WHITE
+        # disegna i soldi dello stato
+        arcade.draw_text(
+            f'Soldi: {self.stato_player.soldi}',
+            50,
+            WINDOW_HEIGHT - 50
         )
 
-        # Call draw() on all your sprite lists below
+        # utilizza la posizione della camera per disegnare le figure sullo schermo
+        with self.camera.activate():
+    
+            for i in self.stati:
+                i.disegna()
+
+            # disegna gli esagoni che delimitano le province
+            self.mappa.disegna_scacchiera()
+
+            # disegna la provincia selezionata
+            punti = self.provincia_selezionata.esagono.punti
+            arcade.draw_polygon_filled(punti, arcade.color.WHITE)
+
+            self.stato_player.mostra_truppe()
 
     def on_update(self, delta_time):
 
@@ -363,6 +427,11 @@ class GameView(arcade.View):
             self.cam_direction[0] = -1
         if key == arcade.key.RIGHT:
             self.cam_direction[0] = 1
+       
+        if key == arcade.key.M:
+            self.gestore.input_muovi_soldati()
+        if key == arcade.key.N:
+            self.gestore.input_arruola_soldati()
 
         # cambia lo zoom
         if key == arcade.key.NUM_ADD and self.camera.zoom < MAXIMUM_ZOOM:
