@@ -1,4 +1,5 @@
 import arcade
+import arcade.gui
 import math
 import random
 from pyglet.graphics import Batch
@@ -7,13 +8,13 @@ from pyglet.graphics import Batch
 
 # informazioni della finestra di gioco 
 WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_HEIGHT = 680
 WINDOW_TITLE = "Gioco di strategia"
 
 MAPPA_RIGHE = 10
 MAPPA_COLONNE = 10
 RAGGIO = 30
-NUM_STATI = 2
+NUM_STATI = 5
 ABITANTI_PER_PROVINCIA = 5000
 COSTO_SOLDATO = 10
 
@@ -261,48 +262,123 @@ class Mappa:
                     linee.append(end)
         arcade.draw_lines(linee, arcade.color.BLACK, 1)
 
-class GestoreInterfaccia:
+# INTERFACCIA GRAFICA
+
+class BarraProgressiva(arcade.gui.UIWidget):
+    value = arcade.gui.Property(0.0)
+    """The fill level of the progress bar. A value between 0 and 1."""
+
+    def __init__(
+        self,
+        value,
+        width,
+        height,
+        color
+    ):
+        super().__init__(
+            width = width,
+            height = height,
+            size_hint = None,  # disable size hint, so it just uses the size given
+        )
+        self.with_background(color=arcade.uicolor.WHITE)
+        self.with_border(color=arcade.uicolor.GRAY_CONCRETE)
+
+        self.value = value
+        self.color = color
+
+        # trigger a render when the value changes
+        arcade.gui.bind(self, "value", self.trigger_render)
+
+    def on_event(self, event):
+        if str(event.__class__).find('UIMousePressEvent') != -1: 
+            if event.y > self.position.y and event.y - self.position.y < self.height:
+                self.value = max(0, min(1, (event.x - self.position.x) / self.width))
+        if str(event.__class__).find('UIMouseDragEvent') != -1: 
+            x = event.x + event.dx
+            y = event.y + event.dy
+            if y > self.position.y and y - self.position.y < self.height:
+                self.value = max(0, min(1, (x - self.position.x) / self.width))
+
+    def do_render(self, surface: arcade.gui.Surface):
+        """Draw the actual progress bar."""
+        # this will set the viewport to the size of the widget
+        # so that 0,0 is the bottom left corner of the widget content
+        self.prepare_render(surface)
+
+        # Draw the actual bar
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            0,
+            self.content_width * self.value,
+            self.content_height,
+            self.color,
+        )
+
+class GestoreInterfaccia(arcade.gui.UIManager):
 
     def __init__(self, stato_player, provincia_selezionata):
+        super().__init__()
+
         self.muovi_soldati = False
         self.provincia_precedente = None
         self.soldati_da_muovere = 0
         self.stato = stato_player
         self.provincia_selezionata = provincia_selezionata
+        self.arruola = False
 
-    def input_muovi_soldati(self):
+        layout = self.add(arcade.gui.UIAnchorLayout())
+
+        self.barra = BarraProgressiva(
+            0.5,
+            400,
+            20,
+            arcade.color.RED
+        )
+        self.barra.visible = False
+
+        layout.add(self.barra, anchor_x='center', anchor_y='bottom', align_y=20)
+
+    def soldati_barra(self):
         if self.muovi_soldati:
-            self.muovi_soldati = False
-            return
+            return int(self.provincia_precedente.soldati * self.barra.value)
+        if self.arruola:
+            return int(self.barra.value * min(self.stato.soldi / COSTO_SOLDATO, self.provincia_selezionata.abitanti / 2))
+
+    # cambia la provincia selezionata dall'utente
+    def cambia_provincia(self, provincia):
+        if provincia != None:
+            self.provincia_selezionata = provincia
+        self.muovi_esercito()
+    
+    def input_muovi_soldati(self):
+        self.barra.value = 1
+        self.barra.visible = True
         self.muovi_soldati = True
-        soldati = int(input('Quanti soldati muovere? '))
-        if soldati > self.provincia_selezionata.soldati:
-            print(f'Numero soldati selezionato maggiore a soldati presenti ({self.provincia_selezionata.soldati})')
-            self.muovi_soldati = False
-        if soldati < 0:
-            print('Numero minore di 0')
-            self.muovi_soldati = False
-        else:
-            self.soldati_da_muovere = soldati
-            self.provincia_precedente = self.provincia_selezionata
+        self.provincia_precedente = self.provincia_selezionata
 
     def muovi_esercito(self):
         if self.muovi_soldati and (self.provincia_selezionata.stato == self.stato or self.provincia_selezionata.stato in self.stato.guerra):
-            self.provincia_selezionata.soldati += self.soldati_da_muovere
-            self.provincia_precedente.soldati -= self.soldati_da_muovere
-            self.soldati_da_muovere = 0
-            self.muovi_soldati = False
-            self.provincia_precedente = None
-   
+            soldati = self.soldati_barra()
+            self.provincia_selezionata.soldati += soldati
+            self.provincia_precedente.soldati -= soldati 
+        self.muovi_soldati = False
+        self.provincia_precedente = None
+        self.barra.value = 0
+        self.barra.visible = False
+
     def input_arruola_soldati(self):
-        soldati = int(input(f'Quanti soldati arruolare (Costo di un soldato: {COSTO_SOLDATO})? '))
-        if soldati > self.provincia_selezionata.abitanti / 4:
-            print(f'Numero di soldati oltre {int(provincia_selezionata.abitanti / 4)}')
-        elif self.stato.soldi < COSTO_SOLDATO * soldati:
-            print(f'Soldi insufficienti. Richiesti: {COSTO_SOLDATO * soldati}')
-        else:
+        self.barra.value = 0.5
+        self.barra.visible = True
+        self.arruola = True
+
+    def arruola_soldati(self):
+        if self.arruola:
+            soldati = self.soldati_barra()
             self.provincia_selezionata.soldati += soldati
             self.stato.soldi -= COSTO_SOLDATO * soldati
+            self.arruola = False
+            self.barra.value = 0
+            self.barra.visible = False
 
 # CLASSE PRINCIPALE
 
@@ -314,7 +390,7 @@ class GameView(arcade.View):
         super().__init__()
 
         # colore sfondo
-        self.background_color = arcade.color.AMAZON
+        self.background_color = arcade.color.BLACK
         
         # inizializzazione mappa
         self.mappa = Mappa()
@@ -329,9 +405,6 @@ class GameView(arcade.View):
         # direzione verso cui si muove la visuale
         self.cam_direction = [0, 0]
 
-        self.provincia_selezionata = self.mappa.province[0][0]
-        print(self.provincia_selezionata)
-
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
 
@@ -340,14 +413,7 @@ class GameView(arcade.View):
 
         self.stato_player = self.stati[0]
 
-        self.gestore = GestoreInterfaccia(self.stato_player, self.provincia_selezionata)
-
-    # cambia la provincia selezionata dall'utente
-    def cambia_provincia(self, provincia):
-        if provincia != None:
-            self.provincia_selezionata = provincia
-            self.gestore.provincia_selezionata = provincia
-        self.gestore.muovi_esercito()
+        self.gestore = GestoreInterfaccia(self.stato_player, self.mappa.province[0][0])
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -386,13 +452,6 @@ class GameView(arcade.View):
         # pulisce lo schermo
         self.clear()
 
-        # disegna i soldi dello stato
-        arcade.draw_text(
-            f'Soldi: {self.stato_player.soldi}',
-            50,
-            WINDOW_HEIGHT - 50
-        )
-
         # utilizza la posizione della camera per disegnare le figure sullo schermo
         with self.camera.activate():
     
@@ -403,10 +462,32 @@ class GameView(arcade.View):
             self.mappa.disegna_scacchiera()
 
             # disegna la provincia selezionata
-            punti = self.provincia_selezionata.esagono.punti
+            punti = self.gestore.provincia_selezionata.esagono.punti
             arcade.draw_polygon_filled(punti, arcade.color.WHITE)
 
             self.stato_player.mostra_truppe()
+
+        # disegna i soldi dello stato
+        arcade.draw_text(
+            f'Soldi: {self.stato_player.soldi}',
+            50,
+            WINDOW_HEIGHT - 50
+        )
+        
+        if self.gestore.muovi_soldati or self.gestore.arruola:
+            arcade.draw_text(
+                f'Soldati: {self.gestore.soldati_barra()}',
+                50,
+                WINDOW_HEIGHT - 100
+            )
+
+        self.gestore.draw()
+
+    def on_show_view(self):
+        self.gestore.enable()
+    
+    def on_hide_view(self):
+        self.gestore.disable()
 
     def on_update(self, delta_time):
 
@@ -432,6 +513,8 @@ class GameView(arcade.View):
             self.gestore.input_muovi_soldati()
         if key == arcade.key.N:
             self.gestore.input_arruola_soldati()
+        if key == arcade.key.ENTER:
+            self.gestore.arruola_soldati()
 
         # cambia lo zoom
         if key == arcade.key.NUM_ADD and self.camera.zoom < MAXIMUM_ZOOM:
@@ -441,17 +524,17 @@ class GameView(arcade.View):
 
         # cambia la provincia selezionata
         if key == arcade.key.W:
-            self.cambia_provincia(self.provincia_selezionata.nordovest)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.nordovest)
         if key == arcade.key.E:
-            self.cambia_provincia(self.provincia_selezionata.nordest)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.nordest)
         if key == arcade.key.A:
-            self.cambia_provincia(self.provincia_selezionata.est)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.est)
         if key == arcade.key.F:
-            self.cambia_provincia(self.provincia_selezionata.ovest)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.ovest)
         if key == arcade.key.S:
-            self.cambia_provincia(self.provincia_selezionata.sudovest)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.sudovest)
         if key == arcade.key.D:
-            self.cambia_provincia(self.provincia_selezionata.sudest)
+            self.gestore.cambia_provincia(self.gestore.provincia_selezionata.sudest)
 
     def on_key_release(self, key, key_modifiers):
         """
@@ -485,9 +568,9 @@ class GameView(arcade.View):
         """
         pass
 
-
 def main():
     """ Main function """
+
     # Create a window class. This is what actually shows up on screen
     window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 
