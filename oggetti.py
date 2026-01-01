@@ -8,7 +8,7 @@ from matematica import *
 PUNTI_AZIONE = 10
 FONT_SIZE_TRUPPE = 8
 ABITANTI_PER_PROVINCIA = 10000
-SOLDI = 500000
+SOLDI = 100000000000
 
 # DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
 
@@ -18,23 +18,29 @@ class Stato:
 
         self.elenco_province = []
         self.colore = None
-        self.forma = None
+        self.forma = arcade.shape_list.ShapeElementList()
 
         self.soldi = SOLDI
         self.punti_azione = PUNTI_AZIONE
         # altri Stati con cui lo Stato è in guerra
         self.guerra = []
 
-    # aggiorna i vertici che compongono la forma dello Stato (la linea del confine)
-    def aggiorna_forma(self):
+        self.costo_soldato = 10
+        self.tasso_arruolamento = 0.1
+
+    def aggiungi_forma(self, provincia):
         
-        # viene creato un mesh unico che unisce ogni esagono (ogni provincia) per rendere la renderizzazione più efficiente
-        self.forma = arcade.shape_list.ShapeElementList()
-        
-        for p in self.elenco_province:
-            punti = p.esagono.punti
-            shape_list = arcade.shape_list.create_polygon(punti, self.colore)
-            self.forma.append(shape_list)
+        punti = provincia.esagono.punti
+        shape_list = arcade.shape_list.create_polygon(punti, self.colore)
+        self.forma.append(shape_list)
+        provincia.forma = shape_list
+    
+    def rimuovi_forma(self, provincia):
+        try:
+            self.forma.remove(provincia.forma)
+            provincia.forma = None
+        except:
+            print('ERRORE: provincia non esistente nella forma dello stato')
 
     # viene assegnato un colore allo Stato; ritorna i colori rimanenti
     def scegli_colore(self, colori_stati_disponibili):
@@ -51,10 +57,10 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         if provincia.stato != None:
             provincia.stato.elenco_province.remove(provincia)
-            provincia.stato.aggiorna_forma()
-        self.elenco_province.append(provincia)
+            provincia.stato.rimuovi_forma(provincia)
         provincia.stato = self
-        self.aggiorna_forma()
+        self.aggiungi_forma(provincia)
+        self.elenco_province.append(provincia)
 
     # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
     def espandi(self):
@@ -81,6 +87,7 @@ class Stato:
 
     # viene renderizzato lo Stato
     def disegna(self):
+
         if self.forma == None:
             self.aggiorna_forma()
         self.forma.draw()
@@ -131,7 +138,7 @@ class Stato:
                     testo = self.testo_truppa(p, azione['soldati'], arcade.color.GREEN, -FONT_SIZE_TRUPPE * 2, batch)
                     testi.append(testo)
                     t = True
-                if azione['azione'] == 'arrivo truppe':
+                if azione['azione'] == 'arrivo truppe' and azione['stato'] == self:
                     soldati_spostati += azione['soldati']
 
             if soldati_spostati != 0:
@@ -156,6 +163,32 @@ class Stato:
 
         return confini
 
+    def arruola_soldati(self, soldati, provincia):
+        self.soldi -= self.costo_soldato * soldati
+        provincia.abitanti -= soldati
+        self.punti_azione -= 1
+        # aggiungi azioni
+        provincia.azioni.append({
+            'azione': 'arruola',
+            'soldati': soldati
+        })
+
+    def muovi_soldati(self, soldati, origine, destinazione):
+        origine.soldati -= soldati 
+        self.punti_azione -= 1
+        # aggiungi azioni
+        origine.azioni.append({
+            'azione': 'muovi',
+            'destinazione': destinazione,
+            'soldati': soldati
+        })
+        destinazione.azioni.append({
+            'azione': 'arrivo truppe',
+            'stato': self,
+            'soldati': soldati,
+            'origine': origine
+        })
+
 class Provincia:
 
     def __init__(self, x, y, raggio):
@@ -178,6 +211,8 @@ class Provincia:
         self.sudovest = None
 
         self.azioni = []
+        
+        self.forma = None
 
     # restituisce le province vicine della provincia
     def province_vicine(self):

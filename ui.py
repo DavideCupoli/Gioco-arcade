@@ -2,9 +2,6 @@ import arcade
 import arcade.gui
 import threading
 
-COSTO_SOLDATO = 10
-TASSO_ARRUOLAMENTO = 0.1
-
 # GESTIONE INTERFACCIA
 
 class BarraProgressiva(arcade.gui.UIWidget):
@@ -86,7 +83,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         if self.muovi_soldati:
             return int(self.provincia_precedente.soldati * self.barra.value)
         if self.arruola:
-            return int(self.barra.value * min(self.stato.soldi / COSTO_SOLDATO, self.provincia_selezionata.abitanti * TASSO_ARRUOLAMENTO))
+            return int(self.barra.value * min(self.stato.soldi / self.stato.costo_soldato, self.provincia_selezionata.abitanti * self.stato.tasso_arruolamento))
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, provincia):
@@ -104,19 +101,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     def muovi_esercito(self):
         soldati = self.soldati_barra()
         if self.muovi_soldati and self.provincia_precedente != self.provincia_selezionata and soldati != 0:
-            self.provincia_precedente.soldati -= soldati 
-            self.stato.punti_azione -= 1
-            # aggiungi azioni
-            self.provincia_precedente.azioni.append({
-                'azione': 'muovi',
-                'destinazione': self.provincia_selezionata,
-                'soldati': soldati
-            })
-            self.provincia_selezionata.azioni.append({
-                'azione': 'arrivo truppe',
-                'soldati': soldati,
-                'origine': self.provincia_precedente
-            })
+            self.stato.muovi_soldati(soldati, self.provincia_precedente, self.provincia_selezionata)
         self.muovi_soldati = False
         self.provincia_precedente = None
         self.barra.value = 0
@@ -127,43 +112,15 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             if azione['azione'] == 'arruola':
                 return
         if self.gioco.turno_stato == 0 and self.provincia_selezionata.stato == self.stato and self.stato.punti_azione != 0:
-            self.barra.value = 0.5
+            self.barra.value = 1
             self.barra.visible = True
             self.arruola = True
 
     def arruola_soldati(self):
-        if self.arruola:
-            soldati = self.soldati_barra()
-            if soldati != 0:
-                self.stato.soldi -= COSTO_SOLDATO * soldati
-                self.provincia_selezionata.abitanti -= soldati
-                self.arruola = False
-                self.barra.value = 0
-                self.barra.visible = False
-                self.stato.punti_azione -= 1
-                # aggiungi azioni
-                self.provincia_selezionata.azioni.append({
-                    'azione': 'arruola',
-                    'soldati': soldati
-                })
+        soldati = self.soldati_barra()
+        if self.arruola and soldati:
+            self.stato.arruola_soldati(soldati, self.provincia_selezionata)
+            self.arruola = False
+            self.barra.value = 0
+            self.barra.visible = False
 
-    '''
-    def cancella_azione(self):
-        if len(self.provincia_selezionata.azioni) != 0 and self.provincia_selezionata.stato == self.stato:
-            azione = self.provincia_selezionata.azioni.pop()
-            if azione['azione'] == 'muovi':
-                destinazione = azione['destinazione']
-                for azione in destinazione.azioni:
-                    if azione['azione'] == 'arrivo truppe' and azione['origine'] == self.provincia_selezionata:
-                        destinazione.azioni.remove(azione)
-                        break
-            if azione['azione'] == 'arrivo truppe':
-                origine = azione['origine']
-                for azione in origine.azioni:
-                    if azione['azione'] == 'muovi' and azione['destinazione'] == self.provincia_selezionata:
-                        origine.azioni.remove(azione)
-                        break                  
-            if azione['soldati'] != 0:
-                self.stato.punti_azione += 1
-            print('Rimossa azione ' + azione)
-    '''

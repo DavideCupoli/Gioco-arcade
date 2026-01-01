@@ -12,7 +12,7 @@ WINDOW_TITLE = "Gioco di strategia"
 MAPPA_RIGHE = 10
 MAPPA_COLONNE = 10
 RAGGIO = 30
-NUM_STATI = 5
+NUM_STATI = 2
 
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
@@ -29,8 +29,7 @@ COLORI_STATI = [
     arcade.color.ORANGE,
     arcade.color.CYAN,
     arcade.color.PURPLE,
-    arcade.color.BROWN,
-    arcade.color.GRAY,
+    arcade.color.BROWN, arcade.color.GRAY,
     arcade.color.PINK,
     arcade.color.BLUE,
     arcade.color.CARIBBEAN_GREEN
@@ -52,10 +51,7 @@ def esegui_azioni(stato):
                     else:
                         if destinazione.soldati < soldati:
                             stato.aggiungi_provincia(destinazione)
-                        destinazione.soldati = int(math.fabs(
-                            destinazione.soldati - soldati
-                        ))
-                    
+                        destinazione.soldati = int(math.fabs(destinazione.soldati - soldati))
             p.azioni = []
 
 # GESTIONE BOT
@@ -68,8 +64,27 @@ class GestoreDecisioni(threading.Thread):
     def run(self):
         while self.gioco.turno_stato != 0:
             stato = self.gioco.stati[self.gioco.turno_stato]
-            esegui_azioni(stato)
+            stato.punti_azione = PUNTI_AZIONE
+            confini = stato.ottieni_confini(False)
+            random.shuffle(confini)
+            if len(confini) != 0:
+                for i in range(stato.punti_azione // 2):
+                    provincia = random.choice(confini)  
+                    soldati = int(min(stato.soldi / stato.costo_soldato, provincia.abitanti * stato.tasso_arruolamento))
+                    stato.arruola_soldati(soldati, provincia)
+                for p in confini:
+                    if p.soldati > 0:
+                        vicine = p.province_vicine()
+                        prov_confinanti = []
+                        for v in vicine:
+                            if v != None and v.stato != stato:
+                                prov_confinanti.append(v)
+                        soldati = int(p.soldati / len(prov_confinanti))
+                        for c in prov_confinanti:
+                            if stato.punti_azione > 0:
+                                stato.muovi_soldati(soldati, p, c)
 
+            esegui_azioni(stato)
             self.gioco.turno_stato += 1
             if self.gioco.turno_stato == len(self.gioco.stati):
                 self.gioco.turno_stato = 0
@@ -114,6 +129,8 @@ class GameView(arcade.View):
         self.bot = None
 
         self.modalita_truppe = 1
+        
+        self.indice_truppe = 0
 
     def nuovo_thread(self):
         self.bot = GestoreDecisioni(self)
@@ -129,8 +146,23 @@ class GameView(arcade.View):
             num_righe = len(self.mappa.province)
             num_colonne = len(self.mappa.province[0])
 
-            r = random.randint(0, num_righe - 1)
-            c = random.randint(0, num_colonne - 1)
+            r = None
+            c = None
+            
+            posizione_valida = False
+
+            while not posizione_valida:
+                r = random.randint(0, num_righe - 1)
+                c = random.randint(0, num_colonne - 1)
+                for s in self.stati:
+                    if s.elenco_province[0] != self.mappa.province[r][c]:
+                        posizione_valida = True
+                        break
+                    else:
+                        print(r, c)
+
+                posizione_valida |= len(self.stati) == 0
+                        
             provincia = self.mappa.province[r][c]
             stato.aggiungi_provincia(provincia)
             self.stati.append(stato)
@@ -151,11 +183,7 @@ class GameView(arcade.View):
         pass
 
     def on_draw(self):
-        """
-        Render the screen.
-        """
-
-        # pulisce lo schermo
+    
         self.clear()
 
         # utilizza la posizione della camera per disegnare le figure sullo schermo
@@ -171,7 +199,7 @@ class GameView(arcade.View):
             punti = self.interfaccia.provincia_selezionata.esagono.punti
             arcade.draw_polygon_filled(punti, arcade.color.WHITE)
 
-            self.stato_player.mostra_truppe()
+            self.stati[self.indice_truppe].mostra_truppe()
 
         # disegna i soldi dello stato
         arcade.draw_text(
@@ -220,7 +248,7 @@ class GameView(arcade.View):
             self.cam_direction[0] = -1
         if key == arcade.key.RIGHT:
             self.cam_direction[0] = 1
-       
+
         if key == arcade.key.M:
             self.interfaccia.input_muovi_soldati()
         if key == arcade.key.N:
@@ -231,6 +259,8 @@ class GameView(arcade.View):
             esegui_azioni(self.stato_player)
             self.turno_stato += 1
             self.nuovo_thread()
+        if key == arcade.key.X:
+            self.indice_truppe = (self.indice_truppe + 1) % len(self.stati)
         
         if key == arcade.key.KEY_1:
             self.modalita_truppe = 1
