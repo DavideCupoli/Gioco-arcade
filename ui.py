@@ -1,12 +1,13 @@
 import arcade
 import arcade.gui
 import threading
+from costanti import *
 
 # GESTIONE INTERFACCIA
 
+# Widget per spostare/arruolare un certo numero di soldati
 class BarraProgressiva(arcade.gui.UIWidget):
     value = arcade.gui.Property(0.0)
-    """The fill level of the progress bar. A value between 0 and 1."""
 
     def __init__(
         self,
@@ -18,7 +19,7 @@ class BarraProgressiva(arcade.gui.UIWidget):
         super().__init__(
             width = width,
             height = height,
-            size_hint = None,  # disable size hint, so it just uses the size given
+            size_hint = None
         )
         self.with_background(color=arcade.uicolor.WHITE)
         self.with_border(color=arcade.uicolor.GRAY_CONCRETE)
@@ -54,6 +55,7 @@ class BarraProgressiva(arcade.gui.UIWidget):
             self.color,
         )
 
+# Classe che contiene le funzioni principali per la gestione della GUI e alcune funzioni per dare ordini allo Stato del giocatore principale
 class GestoreInterfaccia(arcade.gui.UIManager):
 
     def __init__(self, gioco):
@@ -79,11 +81,12 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
         layout.add(self.barra, anchor_x='center', anchor_y='bottom', align_y=20)
 
+    # ritorna il numero di soldati che sta indicando la barra (prendendo in considerazione le condizioni della provincia, i soldi ecc.)
     def soldati_barra(self):
         if self.muovi_soldati:
             return int(self.provincia_precedente.soldati * self.barra.value)
         if self.arruola:
-            return int(self.barra.value * min(self.stato.soldi / self.stato.costo_soldato, self.provincia_selezionata.abitanti * self.stato.tasso_arruolamento))
+            return int(self.barra.value * min(self.stato.soldi / COSTO_SOLDATO, self.provincia_selezionata.abitanti * TASSO_ARRUOLAMENTO))
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, provincia):
@@ -91,6 +94,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.provincia_selezionata = provincia
         self.muovi_esercito()
     
+    # rende visibile la barra e chiede quanti soldati spostare
     def input_muovi_soldati(self):
         if self.gioco.turno_stato == 0 and self.provincia_selezionata.stato == self.stato and self.stato.punti_azione != 0:
             self.barra.value = 1
@@ -98,6 +102,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.muovi_soldati = True
             self.provincia_precedente = self.provincia_selezionata
 
+    # chiede allo Stato di aggiungere un'azione per spostare una truppa
     def muovi_esercito(self):
         soldati = self.soldati_barra()
         if self.muovi_soldati and self.provincia_precedente != self.provincia_selezionata and soldati != 0:
@@ -107,6 +112,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.barra.value = 0
         self.barra.visible = False
 
+    # rende visibile la barra e chiede quanti soldati arruolare
     def input_arruola_soldati(self):
         for azione in self.provincia_selezionata.azioni:
             if azione['azione'] == 'arruola':
@@ -116,6 +122,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.barra.visible = True
             self.arruola = True
 
+    # chiede allo Stato di aggiungere un'azione per arruolare dei soldati
     def arruola_soldati(self):
         soldati = self.soldati_barra()
         if self.arruola and soldati:

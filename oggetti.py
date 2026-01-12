@@ -2,13 +2,8 @@ import arcade
 import random
 import math
 from pyglet.graphics import Batch
-
 from matematica import *
-
-PUNTI_AZIONE = 10
-FONT_SIZE_TRUPPE = 8
-ABITANTI_PER_PROVINCIA = 10000
-SOLDI = 100000000000
+from costanti import *
 
 # DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
 
@@ -25,22 +20,14 @@ class Stato:
         # altri Stati con cui lo Stato è in guerra
         self.guerra = []
 
-        self.costo_soldato = 10
-        self.tasso_arruolamento = 0.1
-
-    def aggiungi_forma(self, provincia):
+    def aggiorna_forma(self):
         
-        punti = provincia.esagono.punti
-        shape_list = arcade.shape_list.create_polygon(punti, self.colore)
-        self.forma.append(shape_list)
-        provincia.forma = shape_list
-    
-    def rimuovi_forma(self, provincia):
-        try:
-            self.forma.remove(provincia.forma)
-            provincia.forma = None
-        except:
-            print('ERRORE: provincia non esistente nella forma dello stato')
+        self.forma.clear()
+
+        for p in self.elenco_province:
+            punti = p.esagono.punti
+            shape_list = arcade.shape_list.create_polygon(punti, self.colore)
+            self.forma.append(shape_list)
 
     # viene assegnato un colore allo Stato; ritorna i colori rimanenti
     def scegli_colore(self, colori_stati_disponibili):
@@ -57,9 +44,7 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         if provincia.stato != None:
             provincia.stato.elenco_province.remove(provincia)
-            provincia.stato.rimuovi_forma(provincia)
         provincia.stato = self
-        self.aggiungi_forma(provincia)
         self.elenco_province.append(provincia)
 
     # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
@@ -88,8 +73,7 @@ class Stato:
     # viene renderizzato lo Stato
     def disegna(self):
 
-        if self.forma == None:
-            self.aggiorna_forma()
+        self.aggiorna_forma()
         self.forma.draw()
     
     def disegna_sfondo_testo(self, p, shift):
@@ -163,8 +147,9 @@ class Stato:
 
         return confini
 
+    # aggiunge un'azione per arruolare i soldati
     def arruola_soldati(self, soldati, provincia):
-        self.soldi -= self.costo_soldato * soldati
+        self.soldi -= COSTO_SOLDATO * soldati
         provincia.abitanti -= soldati
         self.punti_azione -= 1
         # aggiungi azioni
@@ -173,6 +158,7 @@ class Stato:
             'soldati': soldati
         })
 
+    # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
         origine.soldati -= soldati 
         self.punti_azione -= 1
@@ -193,27 +179,28 @@ class Provincia:
 
     def __init__(self, x, y, raggio):
 
+        # dati invariabili della provincia
         self.x = x
         self.y = y
         self.raggio = raggio
-        self.stato = None
         self.esagono = Esagono(x, y, raggio)
 
+        # condizioni della provincia
+        self.stato = None
         self.abitanti = ABITANTI_PER_PROVINCIA
         self.soldati = 0
 
         # province vicine
-        self.est = None
         self.ovest = None
+        self.est = None
         self.nordest = None
         self.nordovest = None
         self.sudest = None
         self.sudovest = None
 
+        # ordini da eseguire
         self.azioni = []
         
-        self.forma = None
-
     # restituisce le province vicine della provincia
     def province_vicine(self):
         return [

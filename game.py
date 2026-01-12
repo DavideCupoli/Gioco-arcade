@@ -3,40 +3,11 @@ import random
 from matematica import *
 from ui import *
 from oggetti import *
-
-# informazioni della finestra di gioco 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 680
-WINDOW_TITLE = "Gioco di strategia"
-
-MAPPA_RIGHE = 10
-MAPPA_COLONNE = 10
-RAGGIO = 30
-NUM_STATI = 2
-
-# velocità con cui si sposta la visuale
-CAM_SPEED = 200
-
-# di quanto aumenta/diminuisce lo zoom
-ZOOM = 0.25
-MAXIMUM_ZOOM = 1.5
-
-# colori nel gioco usati dagli stati
-COLORI_STATI = [
-    arcade.color.RED,
-    arcade.color.YELLOW,
-    arcade.color.GREEN,
-    arcade.color.ORANGE,
-    arcade.color.CYAN,
-    arcade.color.PURPLE,
-    arcade.color.BROWN, arcade.color.GRAY,
-    arcade.color.PINK,
-    arcade.color.BLUE,
-    arcade.color.CARIBBEAN_GREEN
-]
+from costanti import *
 
 # ESECUZIONE AZIONI
 
+# vengono eseguiti gli ordini dello Stato, controllando ogni sua provincia
 def esegui_azioni(stato):
     for p in stato.elenco_province:
         if len(p.azioni) > 0:
@@ -51,11 +22,21 @@ def esegui_azioni(stato):
                     else:
                         if destinazione.soldati < soldati:
                             stato.aggiungi_provincia(destinazione)
-                        destinazione.soldati = int(math.fabs(destinazione.soldati - soldati))
+                        destinazione.soldati = int(
+                            math.fabs(
+                                destinazione.soldati - soldati
+                            )
+                        )
+                    for a in azione['destinazione'].azioni:
+                        if a['azione'] == 'arrivo truppe' and a['stato'] == stato:
+                            azione['destinazione'].azioni.remove(a)
+                            break
+                            
             p.azioni = []
 
 # GESTIONE BOT
 
+# Questa classe costituisce un thread, che viene chiamato ogni volta che i BOT devono prendere delle decisioni
 class GestoreDecisioni(threading.Thread):
     def __init__(self, gioco):
         super().__init__()
@@ -70,7 +51,7 @@ class GestoreDecisioni(threading.Thread):
             if len(confini) != 0:
                 for i in range(stato.punti_azione // 2):
                     provincia = random.choice(confini)  
-                    soldati = int(min(stato.soldi / stato.costo_soldato, provincia.abitanti * stato.tasso_arruolamento))
+                    soldati = int(min(stato.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO))
                     stato.arruola_soldati(soldati, provincia)
                 for p in confini:
                     if p.soldati > 0:
@@ -83,12 +64,13 @@ class GestoreDecisioni(threading.Thread):
                         for c in prov_confinanti:
                             if stato.punti_azione > 0:
                                 stato.muovi_soldati(soldati, p, c)
+                            else:
+                                break
 
             esegui_azioni(stato)
             self.gioco.turno_stato += 1
             if self.gioco.turno_stato == len(self.gioco.stati):
                 self.gioco.turno_stato = 0
-                self.gioco.stato_player.punti_azione = PUNTI_AZIONE
 
 # CLASSE PRINCIPALE
 
@@ -114,7 +96,6 @@ class GameView(arcade.View):
 
         # direzione verso cui si muove la visuale
         self.cam_direction = [0, 0]
-
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
 
@@ -132,6 +113,7 @@ class GameView(arcade.View):
         
         self.indice_truppe = 0
 
+    # viene chiamato un nuovo thread
     def nuovo_thread(self):
         self.bot = GestoreDecisioni(self)
         self.bot.start()
@@ -182,6 +164,7 @@ class GameView(arcade.View):
         # Do changes needed to restart the game here if you want to support that
         pass
 
+    # funzione chiamata ad ogni frame per la renderizzazione
     def on_draw(self):
     
         self.clear()
@@ -249,27 +232,23 @@ class GameView(arcade.View):
         if key == arcade.key.RIGHT:
             self.cam_direction[0] = 1
 
+        # principali comandi con cui si dànno ordini
         if key == arcade.key.M:
             self.interfaccia.input_muovi_soldati()
         if key == arcade.key.N:
             self.interfaccia.input_arruola_soldati()
         if key == arcade.key.ENTER:
             self.interfaccia.arruola_soldati()
+        
+        # passare da un turno all'altro
         if key == arcade.key.SPACE and self.turno_stato == 0:
             esegui_azioni(self.stato_player)
+            self.stato_player.punti_azione = PUNTI_AZIONE
             self.turno_stato += 1
             self.nuovo_thread()
+        # vedere le truppe di un altro Stato
         if key == arcade.key.X:
             self.indice_truppe = (self.indice_truppe + 1) % len(self.stati)
-        
-        if key == arcade.key.KEY_1:
-            self.modalita_truppe = 1
-        if key == arcade.key.KEY_2:
-            self.modalita_truppe = 2
-        if key == arcade.key.KEY_3:
-            self.modalita_truppe = 3
-
-        # cambia lo zoom
 
         # cambia lo zoom
         if key == arcade.key.NUM_ADD and self.camera.zoom < MAXIMUM_ZOOM:
