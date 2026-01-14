@@ -1,14 +1,26 @@
 import arcade
 
-# informazioni della finestra di gioco 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 680
-WINDOW_TITLE = "Gioco di strategia"
+# informazioni legate al gioco
 
 MAPPA_RIGHE = 10
 MAPPA_COLONNE = 10
 RAGGIO = 30
-NUM_STATI = 3
+NUM_STATI = 2
+
+PUNTI_AZIONE = 10
+FONT_SIZE_TRUPPE = 8
+ABITANTI_PER_PROVINCIA = 10000
+SOLDI = 0
+TASSO_ARRUOLAMENTO = 0.1
+PRODUZIONE_PER_ABITANTE = 0.01
+COSTO_MANTENIMENTO_SOLDATO = 0.5
+COSTO_SOLDATO = 1
+CRESCITA_POPOLAZIONE = 1.01
+
+# informazioni della finestra di gioco 
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 680
+WINDOW_TITLE = "Gioco di strategia"
 
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
@@ -30,11 +42,3 @@ COLORI_STATI = [
     arcade.color.BLUE,
     arcade.color.CARIBBEAN_GREEN
 ]
-
-# informazioni legate al gioco
-PUNTI_AZIONE = 10
-FONT_SIZE_TRUPPE = 8
-ABITANTI_PER_PROVINCIA = 10000
-SOLDI = 100000000000
-COSTO_SOLDATO = 10
-TASSO_ARRUOLAMENTO = 0.1

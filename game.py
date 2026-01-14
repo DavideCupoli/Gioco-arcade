@@ -43,6 +43,9 @@ class GestoreDecisioni(threading.Thread):
         self.gioco = gioco
         
     def run(self):
+        if len(self.gioco.stati) == 1:
+            self.gioco.turno_stato = 0
+            return
         while self.gioco.turno_stato != 0:
             stato = self.gioco.stati[self.gioco.turno_stato]
             stato.punti_azione = PUNTI_AZIONE
@@ -51,7 +54,7 @@ class GestoreDecisioni(threading.Thread):
             if len(confini) != 0:
                 for i in range(stato.punti_azione // 2):
                     provincia = random.choice(confini)  
-                    soldati = int(min(stato.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO))
+                    soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
                     stato.arruola_soldati(soldati, provincia)
                 for p in confini:
                     if p.soldati > 0:
@@ -67,7 +70,11 @@ class GestoreDecisioni(threading.Thread):
                             else:
                                 break
 
+            stato.aggiorna_statistiche()
             esegui_azioni(stato)
+            if len(stato.elenco_province) == 0:
+                self.gioco.stati.remove(stato)
+                self.gioco.turno_stato -= 1
             self.gioco.turno_stato += 1
             if self.gioco.turno_stato == len(self.gioco.stati):
                 self.gioco.turno_stato = 0
@@ -107,11 +114,18 @@ class GameView(arcade.View):
         self.interfaccia = GestoreInterfaccia(self)
        
         self.turno_stato = 0
+        # thread che si occupa della gestione dei bot
         self.bot = None
 
         self.modalita_truppe = 1
         
+        # indice di uno stato nella lista_stati dove vengono mostrate le truppe
         self.indice_truppe = 0
+
+        # quanti fps fa il gioco
+        self.fps = 0
+        # tempo di aggiornamento bot
+        self.fps_time = 0
 
     # viene chiamato un nuovo thread
     def nuovo_thread(self):
@@ -181,12 +195,12 @@ class GameView(arcade.View):
             # disegna la provincia selezionata
             punti = self.interfaccia.provincia_selezionata.esagono.punti
             arcade.draw_polygon_filled(punti, arcade.color.WHITE)
-
+            
             self.stati[self.indice_truppe].mostra_truppe()
 
-        # disegna i soldi dello stato
+        # disegna i soldi dello stato selezionato
         arcade.draw_text(
-            f'Soldi: {self.stato_player.soldi}',
+            f'Soldi: {self.stati[self.indice_truppe].soldi}',
             50,
             WINDOW_HEIGHT - 50
         )
@@ -195,6 +209,12 @@ class GameView(arcade.View):
             f'Punti azione: {self.stato_player.punti_azione}',
             50,
             WINDOW_HEIGHT - 100
+        )
+
+        arcade.draw_text(
+            f'FPS: {int(self.fps)}',
+            WINDOW_WIDTH - 100,
+            WINDOW_HEIGHT - 50,
         )
         
         if self.interfaccia.muovi_soldati or self.interfaccia.arruola:
@@ -219,6 +239,12 @@ class GameView(arcade.View):
             self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
             self.camera.position[1] + (self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom)
         )
+            
+        if self.fps_time >= 1:
+            self.fps = 1 / delta_time
+            self.fps_time = 0
+
+        self.fps_time += delta_time
 
     def on_key_press(self, key, key_modifiers):
 
@@ -243,6 +269,7 @@ class GameView(arcade.View):
         # passare da un turno all'altro
         if key == arcade.key.SPACE and self.turno_stato == 0:
             esegui_azioni(self.stato_player)
+            self.stato_player.aggiorna_statistiche()
             self.stato_player.punti_azione = PUNTI_AZIONE
             self.turno_stato += 1
             self.nuovo_thread()
@@ -251,9 +278,9 @@ class GameView(arcade.View):
             self.indice_truppe = (self.indice_truppe + 1) % len(self.stati)
 
         # cambia lo zoom
-        if key == arcade.key.NUM_ADD and self.camera.zoom < MAXIMUM_ZOOM:
+        if key == arcade.key.PLUS and self.camera.zoom < MAXIMUM_ZOOM:
             self.camera.zoom += ZOOM
-        if key == arcade.key.NUM_SUBTRACT and self.camera.zoom > ZOOM:
+        if key == arcade.key.MINUS and self.camera.zoom > ZOOM:
             self.camera.zoom -= ZOOM
 
         # cambia la provincia selezionata

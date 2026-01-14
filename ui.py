@@ -86,7 +86,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         if self.muovi_soldati:
             return int(self.provincia_precedente.soldati * self.barra.value)
         if self.arruola:
-            return int(self.barra.value * min(self.stato.soldi / COSTO_SOLDATO, self.provincia_selezionata.abitanti * TASSO_ARRUOLAMENTO))
+            return int(self.barra.value * self.stato.massimo_soldati(self.provincia_selezionata))
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, provincia):

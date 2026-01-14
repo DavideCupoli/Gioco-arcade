@@ -20,6 +20,17 @@ class Stato:
         # altri Stati con cui lo Stato è in guerra
         self.guerra = []
 
+    # aggiorna le condizioni dello Stato, includendo le risorse (es. soldi)
+    def aggiorna_statistiche(self):
+        for p in self.elenco_province:
+            self.soldi += int(
+                PRODUZIONE_PER_ABITANTE * p.abitanti
+            ) - int(
+                COSTO_MANTENIMENTO_SOLDATO * p.soldati 
+            )
+            p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
+            
+
     def aggiorna_forma(self):
         
         self.forma.clear()
@@ -174,6 +185,10 @@ class Stato:
             'soldati': soldati,
             'origine': origine
         })
+
+    # ritorna il massimo di soldati che possono essere arruolati in una provincia
+    def massimo_soldati(self, provincia):
+        return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))
 
 class Provincia:
 
