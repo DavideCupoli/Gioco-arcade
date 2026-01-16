@@ -7,6 +7,45 @@ from costanti import *
 
 # DEFINIZIONE OGGETTI PRESENTI NEL GIOCO
 
+class IndiceTruppa:
+    # modalita 0 -> default
+    # modalita 1 -> arruola
+    # modalita 2 -> muovi
+    def __init__(self, provincia, num_soldati, modalita, batch):
+
+        self.forma = None
+
+        colore = None
+        offset = 0
+
+        if modalita == 0:
+            colore = arcade.color.WHITE
+        elif modalita == 1:
+            colore = arcade.color.GREEN
+            offset = -FONT_SIZE_TRUPPE * 2
+        elif modalita == 2:
+            colore = arcade.color.RED
+            offset = FONT_SIZE_TRUPPE * 2
+
+        self.testo = arcade.Text(
+            str(num_soldati),
+            provincia.x - (provincia.raggio / 5 * 4),
+            provincia.y - (FONT_SIZE_TRUPPE / 2) + offset,
+            colore,
+            font_size = FONT_SIZE_TRUPPE,
+            width = (provincia.raggio * 2) / 5 * 4,
+            align = 'center',
+            batch = batch
+        )
+
+        self.forma = arcade.shape_list.create_rectangle_filled(
+            provincia.x,
+            provincia.y + offset,
+            (provincia.raggio * 2) / 5 * 4,
+            FONT_SIZE_TRUPPE + 6,
+            arcade.color.BLACK    
+        )
+
 class Stato:
 
     def __init__(self):
@@ -20,13 +59,16 @@ class Stato:
         # altri Stati con cui lo Stato è in guerra
         self.guerra = []
 
+        self.forma_truppe = arcade.shape_list.ShapeElementList()
+        self.truppe = []
+        self.batch = None
+
     # aggiorna le condizioni dello Stato, includendo le risorse (es. soldi)
     def aggiorna_statistiche(self):
         for p in self.elenco_province:
             self.soldi += int(
-                PRODUZIONE_PER_ABITANTE * p.abitanti
-            ) - int(
-                COSTO_MANTENIMENTO_SOLDATO * p.soldati 
+                PRODUZIONE_PER_ABITANTE * p.abitanti - (
+                COSTO_MANTENIMENTO_SOLDATO * p.soldati)
             )
             p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
             
@@ -39,7 +81,7 @@ class Stato:
             punti = p.esagono.punti
             shape_list = arcade.shape_list.create_polygon(punti, self.colore)
             self.forma.append(shape_list)
-
+        
     # viene assegnato un colore allo Stato; ritorna i colori rimanenti
     def scegli_colore(self, colori_stati_disponibili):
 
@@ -81,68 +123,56 @@ class Stato:
 
         return province_aggiunte
 
-    # viene renderizzato lo Stato
+    # viene renderizzato lo Stato. Se truppe è True, vengono mostrate anche le truppe
     def disegna(self):
 
-        self.aggiorna_forma()
         self.forma.draw()
-    
-    def disegna_sfondo_testo(self, p, shift):
-        arcade.draw_lbwh_rectangle_filled(
-            p.x - (p.raggio / 5 * 4),
-            p.y - (FONT_SIZE_TRUPPE / 2) - 3 + shift,
-            (p.raggio * 2) / 5 * 4,
-            FONT_SIZE_TRUPPE + 6,
-            arcade.color.BLACK    
-        )
-
-    def testo_truppa(self, p, soldati, colore, shift, b):
-        return arcade.Text(
-            str(soldati),
-            p.x - (p.raggio / 5 * 4),
-            p.y - (FONT_SIZE_TRUPPE / 2) + shift,
-            colore,
-            font_size = FONT_SIZE_TRUPPE,
-            width = (p.raggio * 2) / 5 * 4,
-            align = 'center',
-            batch = b
-        )
 
     def mostra_truppe(self):
+        if self.batch != None:
+            self.forma_truppe.draw()           
+            self.batch.draw()
 
-        batch = Batch()
-        testi = []
+    def renderizza_truppe(self):
+        
+        self.forma_truppe.clear()
+        self.batch = Batch()
+        self.truppe = []
 
         province = self.elenco_province + self.ottieni_confini(True)
 
         for p in province:
 
+            indice = None
+
+            # soldati già stanziati
             soldati_stanziati = p.soldati
             if soldati_stanziati != 0 and p.stato == self:
-                self.disegna_sfondo_testo(p, 0)
-                testo = self.testo_truppa(p, soldati_stanziati, arcade.color.WHITE, 0, batch)
-                testi.append(testo)
+                indice = IndiceTruppa(p, soldati_stanziati, 0, self.batch)
+                self.truppe.append(indice)
+                self.forma_truppe.append(indice.forma)
 
             t = False
     
             soldati_spostati = 0
 
             for azione in p.azioni:
+                # soldati da arruolare
                 if azione['azione'] == 'arruola' and not t and azione['soldati'] != 0 and p.stato == self:
-                    self.disegna_sfondo_testo(p, -FONT_SIZE_TRUPPE * 2)
-                    testo = self.testo_truppa(p, azione['soldati'], arcade.color.GREEN, -FONT_SIZE_TRUPPE * 2, batch)
-                    testi.append(testo)
+                    indice = IndiceTruppa(p, azione['soldati'], 1, self.batch)
+                    self.truppe.append(indice)
+                    self.forma_truppe.append(indice.forma)
+
                     t = True
+                # si aggiunge a soldati_spostati il numero di soldati che devono arrivare nella provincia
                 if azione['azione'] == 'arrivo truppe' and azione['stato'] == self:
                     soldati_spostati += azione['soldati']
 
             if soldati_spostati != 0:
-                self.disegna_sfondo_testo(p, FONT_SIZE_TRUPPE * 2)
-                testo = self.testo_truppa(p, soldati_spostati, arcade.color.RED, FONT_SIZE_TRUPPE * 2, batch)
-                testi.append(testo)
-
-        batch.draw()
-
+                indice = IndiceTruppa(p, soldati_spostati, 2, self.batch)
+                self.truppe.append(indice)
+                self.forma_truppe.append(indice.forma)
+    
     # restituisce le province lungo i confini con gli altri Stati. Se modalita è False restituisce le province confinanti all'interno dello Stato, se modalita è True, le province restituite sono appartenenti agli Stati confinanti
 
     def ottieni_confini(self, modalita):
@@ -160,7 +190,7 @@ class Stato:
 
     # aggiunge un'azione per arruolare i soldati
     def arruola_soldati(self, soldati, provincia):
-        self.soldi -= COSTO_SOLDATO * soldati
+        self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
         provincia.abitanti -= soldati
         self.punti_azione -= 1
         # aggiungi azioni
@@ -168,7 +198,7 @@ class Stato:
             'azione': 'arruola',
             'soldati': soldati
         })
-
+        
     # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
         origine.soldati -= soldati 
@@ -185,7 +215,7 @@ class Stato:
             'soldati': soldati,
             'origine': origine
         })
-
+    
     # ritorna il massimo di soldati che possono essere arruolati in una provincia
     def massimo_soldati(self, provincia):
         return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))

@@ -107,6 +107,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         soldati = self.soldati_barra()
         if self.muovi_soldati and self.provincia_precedente != self.provincia_selezionata and soldati != 0:
             self.stato.muovi_soldati(soldati, self.provincia_precedente, self.provincia_selezionata)
+            self.stato.renderizza_truppe()
         self.muovi_soldati = False
         self.provincia_precedente = None
         self.barra.value = 0
@@ -130,4 +131,5 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.arruola = False
             self.barra.value = 0
             self.barra.visible = False
+            self.stato.renderizza_truppe()
 

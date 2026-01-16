@@ -36,48 +36,39 @@ def esegui_azioni(stato):
 
 # GESTIONE BOT
 
-# Questa classe costituisce un thread, che viene chiamato ogni volta che i BOT devono prendere delle decisioni
-class GestoreDecisioni(threading.Thread):
-    def __init__(self, gioco):
-        super().__init__()
-        self.gioco = gioco
-        
-    def run(self):
-        if len(self.gioco.stati) == 1:
-            self.gioco.turno_stato = 0
-            return
-        while self.gioco.turno_stato != 0:
-            stato = self.gioco.stati[self.gioco.turno_stato]
-            stato.punti_azione = PUNTI_AZIONE
-            confini = stato.ottieni_confini(False)
-            random.shuffle(confini)
-            if len(confini) != 0:
-                for i in range(stato.punti_azione // 2):
-                    provincia = random.choice(confini)  
-                    soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
-                    stato.arruola_soldati(soldati, provincia)
-                for p in confini:
-                    if p.soldati > 0:
-                        vicine = p.province_vicine()
-                        prov_confinanti = []
-                        for v in vicine:
-                            if v != None and v.stato != stato:
-                                prov_confinanti.append(v)
-                        soldati = int(p.soldati / len(prov_confinanti))
-                        for c in prov_confinanti:
-                            if stato.punti_azione > 0:
-                                stato.muovi_soldati(soldati, p, c)
-                            else:
-                                break
+def gestisci_bot(gioco):
+    if len(gioco.stati) == 1:
+        gioco.turno_stato = 0
+        return
+    while gioco.turno_stato != 0:
+        stato = gioco.stati[gioco.turno_stato]
+        confini = stato.ottieni_confini(False)
+        random.shuffle(confini)
+        if len(confini) != 0:
+            for i in range(stato.punti_azione // 2):
+                provincia = random.choice(confini)  
+                soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
+                stato.arruola_soldati(soldati, provincia)
+            for p in confini:
+                if p.soldati > 0:
+                    vicine = p.province_vicine()
+                    prov_confinanti = []
+                    for v in vicine:
+                        if v != None and v.stato != stato:
+                            prov_confinanti.append(v)
+                    soldati = int(p.soldati / len(prov_confinanti))
+                    for c in prov_confinanti:
+                        if stato.punti_azione > 0:
+                            stato.muovi_soldati(soldati, p, c)
+                        else:
+                            break
 
-            stato.aggiorna_statistiche()
-            esegui_azioni(stato)
-            if len(stato.elenco_province) == 0:
-                self.gioco.stati.remove(stato)
-                self.gioco.turno_stato -= 1
-            self.gioco.turno_stato += 1
-            if self.gioco.turno_stato == len(self.gioco.stati):
-                self.gioco.turno_stato = 0
+        gioco.nuovo_turno(stato)
+        if len(stato.elenco_province) == 0:
+            gioco.stati.remove(stato)
+            gioco.turno_stato -= 1
+        if gioco.turno_stato == len(gioco.stati):
+            gioco.turno_stato = 0
 
 # CLASSE PRINCIPALE
 
@@ -124,15 +115,10 @@ class GameView(arcade.View):
 
         # quanti fps fa il gioco
         self.fps = 0
+        self.num_updates = 0
         # tempo di aggiornamento bot
         self.fps_time = 0
-
-    # viene chiamato un nuovo thread
-    def nuovo_thread(self):
-        self.bot = GestoreDecisioni(self)
-        self.bot.start()
-        #self.bot.join()
-
+        
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
         for i in range(n_stati):
@@ -172,6 +158,9 @@ class GameView(arcade.View):
             p = self.stati[i % len(self.stati)].espandi()
             province -= p
             i += 1
+    
+        for i in self.stati:
+            i.aggiorna_forma()
 
     def reset(self):
         """Reset the game to the initial state."""
@@ -194,7 +183,7 @@ class GameView(arcade.View):
 
             # disegna la provincia selezionata
             punti = self.interfaccia.provincia_selezionata.esagono.punti
-            arcade.draw_polygon_filled(punti, arcade.color.WHITE)
+            arcade.draw_polygon_outline(punti, arcade.color.WHITE, 2)
             
             self.stati[self.indice_truppe].mostra_truppe()
 
@@ -241,11 +230,19 @@ class GameView(arcade.View):
         )
             
         if self.fps_time >= 1:
-            self.fps = 1 / delta_time
+            self.fps = self.num_updates
             self.fps_time = 0
+            self.num_updates = 0
 
         self.fps_time += delta_time
+        self.num_updates += 1
 
+    def nuovo_turno(self, stato):
+        esegui_azioni(stato)
+        stato.aggiorna_statistiche()
+        stato.punti_azione = PUNTI_AZIONE
+        self.turno_stato += 1
+        
     def on_key_press(self, key, key_modifiers):
 
         # cambia la direzione verso cui si sposta la camera
@@ -268,14 +265,16 @@ class GameView(arcade.View):
         
         # passare da un turno all'altro
         if key == arcade.key.SPACE and self.turno_stato == 0:
-            esegui_azioni(self.stato_player)
-            self.stato_player.aggiorna_statistiche()
-            self.stato_player.punti_azione = PUNTI_AZIONE
-            self.turno_stato += 1
-            self.nuovo_thread()
+            self.nuovo_turno(self.stato_player)
+            gestisci_bot(self)
+            self.stati[self.indice_truppe].renderizza_truppe()
+            
+            for i in self.stati:
+                i.aggiorna_forma()
         # vedere le truppe di un altro Stato
         if key == arcade.key.X:
             self.indice_truppe = (self.indice_truppe + 1) % len(self.stati)
+            self.stati[self.indice_truppe].renderizza_truppe()
 
         # cambia lo zoom
         if key == arcade.key.PLUS and self.camera.zoom < MAXIMUM_ZOOM:
