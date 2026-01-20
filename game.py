@@ -189,7 +189,7 @@ class GameView(arcade.View):
 
         # disegna i soldi dello stato selezionato
         arcade.draw_text(
-            f'Soldi: {self.stati[self.indice_truppe].soldi}',
+            f'Soldi: {format(self.stati[self.indice_truppe].soldi, ",")}',
             50,
             WINDOW_HEIGHT - 50
         )
@@ -315,12 +315,17 @@ class GameView(arcade.View):
         Called whenever the mouse moves.
         """
         pass
-
+        
     def on_mouse_press(self, x, y, button, key_modifiers):
         """
         Called when the user presses a mouse button.
         """
-        pass
+        for i in self.mappa.province:
+            for j in i:
+                print(j.esagono.dentro(x, y))
+                if j.esagono.dentro(x, y):
+                    self.interfaccia.provincia_selezionata = j
+                    break
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         """
