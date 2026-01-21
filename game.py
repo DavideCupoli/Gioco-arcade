@@ -140,8 +140,6 @@ class GameView(arcade.View):
                     if s.elenco_province[0] != self.mappa.province[r][c]:
                         posizione_valida = True
                         break
-                    else:
-                        print(r, c)
 
                 posizione_valida |= len(self.stati) == 0
                         
@@ -322,8 +320,11 @@ class GameView(arcade.View):
         """
         for i in self.mappa.province:
             for j in i:
-                print(j.esagono.dentro(x, y))
-                if j.esagono.dentro(x, y):
+                p = self.camera.unproject((x, y))
+                d = j.esagono.dentro(
+                    p[0], p[1]
+                )
+                if d:
                     self.interfaccia.provincia_selezionata = j
                     break
 

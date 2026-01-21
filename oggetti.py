@@ -311,7 +311,12 @@ class Mappa:
                     self.province[i][j].nordovest = self.province[i + 1][j - 1]
                 if i + 1 < len(self.province) and i % 2 != 0:
                     self.province[i][j].nordovest = self.province[i + 1][j]
-            
+
+    def trova_provincia(self, x, y):
+        inizio_x = self.province[0][0].centro_x
+        inizio_y = self.province[0][0].centro_y
+        incremento_y = self.raggio + self.raggio * math.sin(math.radians(30))
+
     # disegna la scacchiera esagonale
     def disegna_scacchiera(self):
 

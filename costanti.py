@@ -2,10 +2,10 @@ import arcade
 
 # informazioni legate al gioco
 
-MAPPA_RIGHE = 20
-MAPPA_COLONNE = 20
+MAPPA_RIGHE = 30
+MAPPA_COLONNE = 30
 RAGGIO = 30
-NUM_STATI = 5
+NUM_STATI = 10
 
 PUNTI_AZIONE = 10
 FONT_SIZE_TRUPPE = 8
@@ -19,7 +19,9 @@ CRESCITA_POPOLAZIONE = 1.01
 
 # informazioni della finestra di gioco 
 WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 680
+WINDOW_HEIGHT = 600
+#WINDOW_WIDTH = 400
+#WINDOW_HEIGHT = 333
 WINDOW_TITLE = "The Age of Conquests"
 
 # velocità con cui si sposta la visuale

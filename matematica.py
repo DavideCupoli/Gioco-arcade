@@ -122,7 +122,6 @@ class Esagono:
             puntoB = self.punti[(i + 1) % 6]
             lato = retta(puntoA, puntoB)
             inter = intersezione(r, lato)
-            print(lato, inter)
             if inter != 0 and inter != 1:
                 d = distanza(
                     inter,
@@ -137,5 +136,5 @@ class Esagono:
         return False
 
 if __name__ == '__main__':
-    es = Esagono(0, 0, 10)
-    print(es.dentro(3, 3))
+    r = retta((0, 2), (5, 7))
+    print(r)
