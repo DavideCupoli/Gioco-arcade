@@ -236,8 +236,8 @@ class Provincia:
         self.soldati = 0
 
         # province vicine
-        self.ovest = None
         self.est = None
+        self.ovest = None
         self.nordest = None
         self.nordovest = None
         self.sudest = None
@@ -258,27 +258,31 @@ class Provincia:
         ] 
 
 class Mappa:
-    def __init__(self):
+    def __init__(self, num_righe, num_colonne, raggio):
 
         self.province = []
 
+        self.num_righe = num_righe
+        self.num_colonne = num_colonne
+        self.raggio = raggio
+
     # aggiunge le province alla mappa: modifica la lista province
-    def crea_province(self, num_righe, num_province_per_riga, raggio):
+    def crea_province(self):
 
         y = 0
-        for i in range(num_righe):
+        for i in range(self.num_righe):
 
             x = 0
-            if i % 2 != 0:
-                x = raggio * math.cos(math.radians(30))
+            if i % 2 == 1:
+                x = self.raggio * math.cos(math.radians(30))
 
             self.province.append([])
 
-            for j in range(num_province_per_riga):
-                self.province[-1].append(Provincia(x, y, raggio))
-                x += raggio * math.cos(math.radians(30)) * 2
+            for j in range(self.num_colonne):
+                self.province[-1].append(Provincia(x, y, self.raggio))
+                x += self.raggio * math.cos(math.radians(30)) * 2
 
-            y += raggio + raggio * math.sin(math.radians(30))
+            y += self.raggio * (1 + math.sin(math.radians(30)))
 
         # a ogni provincia viene riferito quali sono le province vicine
 
@@ -313,9 +317,19 @@ class Mappa:
                     self.province[i][j].nordovest = self.province[i + 1][j]
 
     def trova_provincia(self, x, y):
-        inizio_x = self.province[0][0].centro_x
-        inizio_y = self.province[0][0].centro_y
-        incremento_y = self.raggio + self.raggio * math.sin(math.radians(30))
+        inizio_x = self.province[0][0].x
+        inizio_y = self.province[0][0].y
+        incremento_x = self.raggio * math.cos(math.radians(30)) * 2
+        incremento_y = self.raggio * (1 + math.sin(math.radians(30)))
+        riga = int((y - inizio_y + self.raggio) / incremento_y)
+        if riga % 2 == 1:
+            inizio_x += incremento_x / 2
+        colonna = int((x - inizio_x + (incremento_x / 2)) / incremento_x)
+
+        riga = max(0, min(riga, self.num_righe - 1))
+        colonna = max(0, min(colonna, self.num_colonne - 1))
+        
+        return self.province[riga][colonna]
 
     # disegna la scacchiera esagonale
     def disegna_scacchiera(self):

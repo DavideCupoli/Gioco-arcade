@@ -106,8 +106,6 @@ class Esagono:
         self.destra.append(self.sotto[-1])
         self.destra.append(self.sopra[0])
 
-        print(self.punti)
-
     def dentro(self, x, y):
         if x == 0 and y == 0:
             return True
@@ -134,7 +132,3 @@ class Esagono:
                     )):
                     return True
         return False
-
-if __name__ == '__main__':
-    r = retta((0, 2), (5, 7))
-    print(r)

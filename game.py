@@ -83,8 +83,8 @@ class GameView(arcade.View):
         self.background_color = arcade.color.BLACK
         
         # inizializzazione mappa
-        self.mappa = Mappa()
-        self.mappa.crea_province(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO)
+        self.mappa = Mappa(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO)
+        self.mappa.crea_province()
 
         # lista di tutti gli Stati nel gioco
         self.stati = []
@@ -147,6 +147,12 @@ class GameView(arcade.View):
             stato.aggiungi_provincia(provincia)
             self.stati.append(stato)
 
+            if i == 0:
+                self.camera.position = self.camera.project(
+                    (stato.elenco_province[0].x - (WINDOW_WIDTH / 2),
+                    stato.elenco_province[0].y - (WINDOW_HEIGHT / 2))
+                )
+
     # gli stati si espandono a turno
     def espandi_stati(self):
 
@@ -179,11 +185,32 @@ class GameView(arcade.View):
             # disegna gli esagoni che delimitano le province
             self.mappa.disegna_scacchiera()
 
-            # disegna la provincia selezionata
-            punti = self.interfaccia.provincia_selezionata.esagono.punti
-            arcade.draw_polygon_outline(punti, arcade.color.WHITE, 2)
+            # disegna la provincia da selezionare
+            punti = self.interfaccia.prov_da_selezionare.esagono.punti
+            arcade.draw_polygon_outline(punti, arcade.color.BLACK, 2)
+            
+            # disegna la provincia selezionata (se non è nulla)
+            if self.interfaccia.provincia_selezionata != None:
+                punti = self.interfaccia.provincia_selezionata.esagono.punti
+                arcade.draw_polygon_outline(punti, arcade.color.WHITE, 3)
             
             self.stati[self.indice_truppe].mostra_truppe()
+
+        arcade.draw_lbwh_rectangle_filled(
+            50,
+            50,
+            50,
+            50,
+            self.stati[0].colore
+        )
+        arcade.draw_lbwh_rectangle_outline(
+            50,
+            50,
+            50,
+            50,
+            arcade.color.BLACK,
+            2
+        )
 
         # disegna i soldi dello stato selezionato
         arcade.draw_text(
@@ -204,7 +231,7 @@ class GameView(arcade.View):
             WINDOW_HEIGHT - 50,
         )
         
-        if self.interfaccia.muovi_soldati or self.interfaccia.arruola:
+        if self.interfaccia.muovi or self.interfaccia.arruola:
             arcade.draw_text(
                 f'Soldati: {self.interfaccia.soldati_barra()}',
                 50,
@@ -255,20 +282,25 @@ class GameView(arcade.View):
 
         # principali comandi con cui si dànno ordini
         if key == arcade.key.M:
-            self.interfaccia.input_muovi_soldati()
+            if self.interfaccia.provincia_selezionata != None:
+                self.interfaccia.input_muovi_soldati()
         if key == arcade.key.N:
-            self.interfaccia.input_arruola_soldati()
+            if self.interfaccia.provincia_selezionata != None:
+                self.interfaccia.input_arruola_soldati()
         if key == arcade.key.ENTER:
             self.interfaccia.arruola_soldati()
         
         # passare da un turno all'altro
         if key == arcade.key.SPACE and self.turno_stato == 0:
+            self.interfaccia.resetta()
+
             self.nuovo_turno(self.stato_player)
             gestisci_bot(self)
             self.stati[self.indice_truppe].renderizza_truppe()
             
             for i in self.stati:
                 i.aggiorna_forma()
+
         # vedere le truppe di un altro Stato
         if key == arcade.key.X:
             self.indice_truppe = (self.indice_truppe + 1) % len(self.stati)
@@ -277,7 +309,7 @@ class GameView(arcade.View):
         # cambia lo zoom
         if key == arcade.key.PLUS and self.camera.zoom < MAXIMUM_ZOOM:
             self.camera.zoom += ZOOM
-        if key == arcade.key.MINUS and self.camera.zoom > ZOOM:
+        if key == arcade.key.MINUS and self.camera.zoom >= ZOOM * 2:
             self.camera.zoom -= ZOOM
 
         # cambia la provincia selezionata
@@ -308,26 +340,36 @@ class GameView(arcade.View):
         elif key == arcade.key.RIGHT:
             self.cam_direction[0] = 0
 
-    def on_mouse_motion(self, x, y, delta_x, delta_y):
-        """
-        Called whenever the mouse moves.
-        """
-        pass
-        
-    def on_mouse_press(self, x, y, button, key_modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-        for i in self.mappa.province:
-            for j in i:
-                p = self.camera.unproject((x, y))
-                d = j.esagono.dentro(
-                    p[0], p[1]
-                )
-                if d:
-                    self.interfaccia.provincia_selezionata = j
-                    break
+    def seleziona_provincia(self, x, y):
 
+        pos = self.camera.unproject((x, y))
+            
+        prov = self.mappa.trova_provincia(pos[0], pos[1])
+
+        for p in [prov, prov.sudest, prov.sudovest]:
+            if p != None and p.esagono.dentro(pos[0], pos[1]):
+                self.interfaccia.prov_da_selezionare = p
+
+    def on_mouse_motion(self, x, y, delta_x, delta_y):
+
+        if (not self.interfaccia.arruola and
+            not self.interfaccia.dentro(x, y, self.interfaccia.bottone_muovi) and
+            not self.interfaccia.dentro(x, y, self.interfaccia.bottone_arruola) and
+            not self.interfaccia.dentro(x, y, self.interfaccia.barra)
+            ):
+            self.seleziona_provincia(x, y)
+
+    def on_mouse_press(self, x, y, button, key_modifiers):
+        
+        if (not self.interfaccia.arruola and
+            not self.interfaccia.dentro(x, y, self.interfaccia.bottone_muovi) and
+            not self.interfaccia.dentro(x, y, self.interfaccia.bottone_arruola) and
+            not self.interfaccia.dentro(x, y, self.interfaccia.barra)
+            ):
+            self.interfaccia.provincia_selezionata = self.interfaccia.prov_da_selezionare
+            if self.interfaccia.muovi:
+                self.interfaccia.muovi_esercito()
+     
     def on_mouse_release(self, x, y, button, key_modifiers):
         """
         Called when a user releases a mouse button.
