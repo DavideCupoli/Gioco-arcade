@@ -62,6 +62,8 @@ class Stato:
         self.forma_truppe = arcade.shape_list.ShapeElementList()
         self.truppe = []
         self.batch = None
+        
+        self.spostamenti_truppe = []
 
     # aggiorna le condizioni dello Stato, includendo le risorse (es. soldi)
     def aggiorna_statistiche(self):
@@ -71,7 +73,6 @@ class Stato:
                 COSTO_MANTENIMENTO_SOLDATO * p.soldati)
             )
             p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
-            
 
     def aggiorna_forma(self):
         
@@ -198,6 +199,28 @@ class Stato:
             'azione': 'arruola',
             'soldati': soldati
         })
+
+    def aggiungi_spostamento(self, soldati, origine, destinazione):
+        percorso = self.trova_percorso(origine, destinazione)
+        if len(percorso) > 2:
+            spostamento = {
+                'soldati': soldati,
+                'percorso': percorso
+            }
+            self.spostamenti_truppe.append(spostamento)
+            self.aggiungi_azioni_spostamenti([spostamento])
+
+        elif len(percorso) == 2:
+            self.muovi_soldati(soldati, origine, destinazione)    
+
+    def aggiungi_azioni_spostamenti(self, spostamenti):
+        for s in spostamenti:
+            origine = s['percorso'].pop(0)
+            destinazione = s['percorso'][0]
+            self.muovi_soldati(s['soldati'], origine, destinazione)
+            
+            if len(s['percorso']) == 1:
+                self.spostamenti_truppe.remove(s)
         
     # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
@@ -220,6 +243,33 @@ class Stato:
     def massimo_soldati(self, provincia):
         return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))
 
+    def ricostruisci_percorso(self, genitori, destinazione):
+        percorso = []
+        corrente = destinazione
+        while corrente != None:
+            percorso.insert(0, corrente)
+            corrente = genitori[corrente]
+        return percorso
+
+    def trova_percorso(self, origine, destinazione):
+        coda = [origine]
+        visitati = {origine}
+        genitori = {origine: None}
+        
+        while len(coda) != 0:
+            corrente = coda.pop(0)
+            if corrente == destinazione:
+                return self.ricostruisci_percorso(genitori, destinazione)
+            for vicino in corrente.province_vicine():
+                if (vicino != None and
+                    not vicino in visitati and
+                    (vicino.stato == self or vicino == destinazione)
+                    ):
+                    visitati.add(vicino)
+                    genitori[vicino] = corrente
+                    coda.append(vicino)
+        return []
+         
 class Provincia:
 
     def __init__(self, x, y, raggio):

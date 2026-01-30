@@ -44,3 +44,12 @@ COLORI_STATI = [
     arcade.color.BLUE,
     arcade.color.CARIBBEAN_GREEN
 ]
+
+# direzioni
+
+NORDOVEST = 0
+NORDEST = 1
+EST = 2
+OVEST = 3
+SUDOVEST = 4
+SUDEST = 5

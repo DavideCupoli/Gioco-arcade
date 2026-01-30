@@ -59,7 +59,7 @@ def gestisci_bot(gioco):
                     soldati = int(p.soldati / len(prov_confinanti))
                     for c in prov_confinanti:
                         if stato.punti_azione > 0:
-                            stato.muovi_soldati(soldati, p, c)
+                            stato.aggiungi_spostamento(soldati, p, c)
                         else:
                             break
 
@@ -264,6 +264,7 @@ class GameView(arcade.View):
 
     def nuovo_turno(self, stato):
         esegui_azioni(stato)
+        stato.aggiungi_azioni_spostamenti(stato.spostamenti_truppe)
         stato.aggiorna_statistiche()
         stato.punti_azione = PUNTI_AZIONE
         self.turno_stato += 1
@@ -314,17 +315,29 @@ class GameView(arcade.View):
 
         # cambia la provincia selezionata
         if key == arcade.key.W:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.nordovest)
+            self.interfaccia.cambia_provincia(NORDOVEST)
         if key == arcade.key.E:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.nordest)
+            self.interfaccia.cambia_provincia(NORDEST)
         if key == arcade.key.A:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.est)
+            self.interfaccia.cambia_provincia(EST)
         if key == arcade.key.F:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.ovest)
+            self.interfaccia.cambia_provincia(OVEST)
         if key == arcade.key.S:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.sudovest)
+            self.interfaccia.cambia_provincia(SUDOVEST)
         if key == arcade.key.D:
-            self.interfaccia.cambia_provincia(self.interfaccia.provincia_selezionata.sudest)
+            self.interfaccia.cambia_provincia(SUDEST)
+        
+        # cambia valore della barra
+        if key == arcade.key.KEY_0:
+            self.interfaccia.barra.value = 0
+        if key == arcade.key.KEY_1:
+            self.interfaccia.barra.value = 1
+        if key == arcade.key.KEY_2:
+            self.interfaccia.barra.value = 1 / 2
+        if key == arcade.key.KEY_3:
+            self.interfaccia.barra.value = 1 / 3
+        if key == arcade.key.KEY_4:
+            self.interfaccia.barra.value = 1 / 4
 
     def on_key_release(self, key, key_modifiers):
         """

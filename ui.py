@@ -100,7 +100,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.provincia_precedente = None
         self.soldati_da_muovere = 0
         self.stato = gioco.stato_player
-        self.prov_da_selezionare = gioco.mappa.province[0][0]
+        self.prov_da_selezionare = self.stato.elenco_province[0]
         self.provincia_selezionata = None
 
         self.muovi = False
@@ -178,17 +178,34 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             return int(self.barra.value * self.stato.massimo_soldati(self.provincia_selezionata))
 
     # cambia la provincia selezionata dall'utente
-    def cambia_provincia(self, provincia):
-        if provincia != None and not self.arruola:
-            self.prov_da_selezionare = provincia
-            self.provincia_selezionata = provincia
+    def cambia_provincia(self, direzione):
+        provincia_precedente = self.provincia_selezionata
+        if self.provincia_selezionata != None and not self.arruola:
+            if direzione == NORDOVEST:
+                self.prov_da_selezionare = self.provincia_selezionata.nordovest
+            if direzione == NORDEST:
+                self.prov_da_selezionare = self.provincia_selezionata.nordest
+            if direzione == OVEST:
+                self.prov_da_selezionare = self.provincia_selezionata.ovest
+            if direzione == EST:
+                self.prov_da_selezionare = self.provincia_selezionata.est
+            if direzione == SUDEST:
+                self.prov_da_selezionare = self.provincia_selezionata.sudest
+            if direzione == SUDOVEST:
+                self.prov_da_selezionare = self.provincia_selezionata.sudovest
+            if self.prov_da_selezionare == None:
+                self.prov_da_selezionare = provincia_precedente
+        self.provincia_selezionata = self.prov_da_selezionare
+        if self.muovi:
+            self.muovi_esercito()
     
     # rende visible la barra e chiede quanti soldati spostare
     def input_muovi_soldati(self):
         if (self.provincia_selezionata.stato == self.stato and
             self.stato.punti_azione != 0 and
             self.provincia_selezionata.soldati != 0):
-            self.barra.value = 1
+            if self.barra.value == 0:
+                self.barra.value = 1
             self.barra.visible = True
             self.bottone_muovi.visible = False
             self.bottone_arruola.visible = False
@@ -198,12 +215,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     # chiede allo Stato di aggiungere un'azione per spostare una truppa
     def muovi_esercito(self):
         soldati = self.soldati_barra()
-        if self.muovi and self.provincia_precedente != self.provincia_selezionata and soldati != 0:
-            self.stato.muovi_soldati(soldati, self.provincia_precedente, self.provincia_selezionata)
+        if (self.muovi and
+            self.provincia_precedente != self.provincia_selezionata and
+            soldati != 0
+            ):
+            self.stato.aggiungi_spostamento(soldati, self.provincia_precedente, self.provincia_selezionata)
             self.stato.renderizza_truppe()
         self.muovi = False
         self.provincia_precedente = None
-        self.barra.value = 0
         self.barra.visible = False
         self.bottone_muovi.visible = True
         self.bottone_arruola.visible = True
@@ -218,7 +237,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.stato.punti_azione != 0 and
             self.stato.massimo_soldati(self.provincia_selezionata) != 0
             ):
-            self.barra.value = 1
+            if self.barra.value == 0:
+                self.barra.value = 1
             self.barra.visible = True
             self.arruola = True
             self.bottone_muovi.visible = False
@@ -231,13 +251,11 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.stato.arruola_soldati(soldati, self.provincia_selezionata)
             self.stato.renderizza_truppe()
         self.arruola = False
-        self.barra.value = 0
         self.barra.visible = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
 
     def resetta(self):
-        self.barra.value = 0
         self.barra.visible = False
         self.arruola = False
         self.muovi = False
