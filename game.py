@@ -94,6 +94,7 @@ class GameView(arcade.View):
 
         # direzione verso cui si muove la visuale
         self.cam_direction = [0, 0]
+        
         # colori che possono essere scelti dagli stati
         self.colori_stati_disponibili = COLORI_STATI.copy()
 
@@ -105,11 +106,7 @@ class GameView(arcade.View):
         self.interfaccia = GestoreInterfaccia(self)
        
         self.turno_stato = 0
-        # thread che si occupa della gestione dei bot
-        self.bot = None
 
-        self.modalita_truppe = 1
-        
         # indice di uno stato nella lista_stati dove vengono mostrate le truppe
         self.indice_truppe = 0
 
@@ -190,9 +187,13 @@ class GameView(arcade.View):
             arcade.draw_polygon_outline(punti, arcade.color.BLACK, 2)
             
             # disegna la provincia selezionata (se non è nulla)
-            if self.interfaccia.provincia_selezionata != None:
-                punti = self.interfaccia.provincia_selezionata.esagono.punti
-                arcade.draw_polygon_outline(punti, arcade.color.WHITE, 3)
+            province = [self.interfaccia.provincia_selezionata]
+            if self.interfaccia.province_multiple:
+                province = self.interfaccia.province_selezionate
+            for p in province:
+                if p != None:
+                    punti = p.esagono.punti
+                    arcade.draw_polygon_outline(punti, arcade.color.WHITE, 3)
             
             self.stati[self.indice_truppe].mostra_truppe()
 
@@ -247,13 +248,13 @@ class GameView(arcade.View):
         self.interfaccia.disable()
 
     def on_update(self, delta_time):
-
+        
         # aggiorna la posizione della camera
         self.camera.position = (
             self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
             self.camera.position[1] + (self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom)
         )
-            
+
         if self.fps_time >= 1:
             self.fps = self.num_updates
             self.fps_time = 0
@@ -339,6 +340,10 @@ class GameView(arcade.View):
         if key == arcade.key.KEY_4:
             self.interfaccia.barra.value = 1 / 4
 
+        # passa a modalità province_multiple
+        if key == arcade.key.MOD_SHIFT:
+            self.interfaccia.province_multiple = True
+
     def on_key_release(self, key, key_modifiers):
         """
         Called whenever the user lets off a previously pressed key.
@@ -352,6 +357,10 @@ class GameView(arcade.View):
             self.cam_direction[0] = 0
         elif key == arcade.key.RIGHT:
             self.cam_direction[0] = 0
+
+        # disattiva modalità province_multiple
+        if key == arcade.key.MOD_SHIFT:
+            self.interfaccia.province_multiple = False
 
     def seleziona_provincia(self, x, y):
 

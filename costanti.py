@@ -2,8 +2,8 @@ import arcade
 
 # informazioni legate al gioco
 
-MAPPA_RIGHE = 30
-MAPPA_COLONNE = 30
+MAPPA_RIGHE = 20
+MAPPA_COLONNE = 20
 RAGGIO = 30
 NUM_STATI = 10
 
