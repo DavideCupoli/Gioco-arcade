@@ -189,7 +189,7 @@ class GameView(arcade.View):
             # disegna la provincia selezionata (se non è nulla)
             province = [self.interfaccia.provincia_selezionata]
             if self.interfaccia.province_multiple:
-                province = self.interfaccia.province_selezionate
+                province = self.interfaccia.province_selezionate.copy()
             for p in province:
                 if p != None:
                     punti = p.esagono.punti
@@ -231,13 +231,22 @@ class GameView(arcade.View):
             WINDOW_WIDTH - 100,
             WINDOW_HEIGHT - 50,
         )
-        
+
         if self.interfaccia.muovi or self.interfaccia.arruola:
-            arcade.draw_text(
-                f'Soldati: {self.interfaccia.soldati_barra()}',
-                50,
-                WINDOW_HEIGHT - 150
-            )
+            soldati = 0
+            if self.interfaccia.province_multiple and self.interfaccia.province_selezionate != []:
+                for p in self.interfaccia.province_selezionate:
+                    soldati += self.interfaccia.soldati_barra(p)
+                soldati //= len(self.interfaccia.province_selezionate)
+            else:
+                soldati = self.interfaccia.soldati_barra(self.interfaccia.provincia_selezionata)
+            
+            if self.interfaccia.muovi or self.interfaccia.arruola:
+                arcade.draw_text(
+                    f'Soldati per provincia: {soldati}',
+                    50,
+                    WINDOW_HEIGHT - 150
+                )
 
         self.interfaccia.draw()
 
@@ -284,10 +293,14 @@ class GameView(arcade.View):
 
         # principali comandi con cui si dànno ordini
         if key == arcade.key.M:
-            if self.interfaccia.provincia_selezionata != None:
+            if (self.interfaccia.provincia_selezionata != None or
+                self.interfaccia.province_selezionate != []
+                ):
                 self.interfaccia.input_muovi_soldati()
         if key == arcade.key.N:
-            if self.interfaccia.provincia_selezionata != None:
+            if (self.interfaccia.provincia_selezionata != None or
+                self.interfaccia.province_selezionate != []
+                ):
                 self.interfaccia.input_arruola_soldati()
         if key == arcade.key.ENTER:
             self.interfaccia.arruola_soldati()
@@ -341,7 +354,10 @@ class GameView(arcade.View):
             self.interfaccia.barra.value = 1 / 4
 
         # passa a modalità province_multiple
-        if key == arcade.key.MOD_SHIFT:
+        if (key == arcade.key.LSHIFT and
+            not self.interfaccia.arruola and
+            not self.interfaccia.muovi
+            ):
             self.interfaccia.province_multiple = True
 
     def on_key_release(self, key, key_modifiers):
@@ -358,8 +374,8 @@ class GameView(arcade.View):
         elif key == arcade.key.RIGHT:
             self.cam_direction[0] = 0
 
-        # disattiva modalità province_multiple
-        if key == arcade.key.MOD_SHIFT:
+        # disattiva la modalità province_multiple
+        if key == arcade.key.LSHIFT and len(self.interfaccia.province_selezionate) == 0:
             self.interfaccia.province_multiple = False
 
     def seleziona_provincia(self, x, y):
@@ -388,7 +404,15 @@ class GameView(arcade.View):
             not self.interfaccia.dentro(x, y, self.interfaccia.bottone_arruola) and
             not self.interfaccia.dentro(x, y, self.interfaccia.barra)
             ):
-            self.interfaccia.provincia_selezionata = self.interfaccia.prov_da_selezionare
+            if self.interfaccia.province_multiple:
+                if not self.interfaccia.prov_da_selezionare in self.interfaccia.province_selezionate:
+                    self.interfaccia.province_selezionate.append(self.interfaccia.prov_da_selezionare)
+                else:
+                    self.interfaccia.province_selezionate.remove(self.interfaccia.prov_da_selezionare)
+                    if len(self.interfaccia.province_selezionate) == 0:
+                        self.interfaccia.province_multiple = False
+            else:
+                self.interfaccia.provincia_selezionata = self.interfaccia.prov_da_selezionare
             if self.interfaccia.muovi:
                 self.interfaccia.muovi_esercito()
      

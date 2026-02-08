@@ -195,6 +195,10 @@ class Stato:
         provincia.abitanti -= soldati
         self.punti_azione -= 1
         # aggiungi azioni
+        for azione in provincia.azioni:
+            if azione['azione'] == 'arruola':
+                azione['soldati'] += soldati   
+                return
         provincia.azioni.append({
             'azione': 'arruola',
             'soldati': soldati

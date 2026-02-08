@@ -69,7 +69,9 @@ class BottoneArruola(arcade.gui.UIFlatButton):
     def on_event(self, event):
         if (str(event.__class__).find('UIMousePressEvent') != -1 and 
             self.interfaccia.dentro(event.x, event.y, self) and
-            self.interfaccia.provincia_selezionata != None):
+            (self.interfaccia.provincia_selezionata != None or
+            self.interfaccia.province_selezionate != [])
+            ):
                 self.interfaccia.input_arruola_soldati()
 
 class BottoneMuovi(arcade.gui.UIFlatButton):
@@ -231,44 +233,34 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
     # rende visibile la barra e chiede quanti soldati arruolare
     def input_arruola_soldati(self):
-        province = [self.provincia_selezionata]
-        if self.province_multiple:
-            province = self.province_selezionate
-        for p in province:
-            for azione in p.azioni:
-                if azione['azione'] == 'arruola':
-                    p.azioni.remove(azione)
-                    break
-            if (p.stato == self.stato and
-                self.stato.punti_azione != 0 and
-                self.stato.massimo_soldati(p) != 0
-                ):
-                if self.barra.value == 0:
-                    self.barra.value = 1
-                self.barra.visible = True
-                self.arruola = True
-                self.bottone_muovi.visible = False
-                self.bottone_arruola.visible = False
+        if self.barra.value == 0:
+            self.barra.value = 1
+        self.barra.visible = True
+        self.arruola = True
+        self.bottone_muovi.visible = False
+        self.bottone_arruola.visible = False
 
     # chiede allo Stato di aggiungere un'azione per arruolare dei soldati
     def arruola_soldati(self):
         province = [self.provincia_selezionata]
         if self.province_multiple:
-            province = self.province_selezionate
+            province = self.province_selezionate.copy()
         for p in province:
             soldati = self.soldati_barra(p)
-            if self.arruola and soldati:
+            if self.arruola and soldati != 0 and self.stato.punti_azione > 0:
                 self.stato.arruola_soldati(soldati, p)
-                self.stato.renderizza_truppe()
-            self.arruola = False
-            self.barra.visible = False
-            self.bottone_arruola.visible = True
-            self.bottone_muovi.visible = True
+        self.stato.renderizza_truppe()
+        self.arruola = False
+        self.barra.visible = False
+        self.bottone_arruola.visible = True
+        self.bottone_muovi.visible = True
 
     def resetta(self):
         self.barra.visible = False
         self.arruola = False
         self.muovi = False
         self.provincia_selezionata = None
+        self.province_selezionate.clear()
+        self.province_multiple = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
