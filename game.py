@@ -125,6 +125,7 @@ class GameView(arcade.View):
             num_righe = len(self.mappa.province)
             num_colonne = len(self.mappa.province[0])
 
+
             r = None
             c = None
             
@@ -133,13 +134,14 @@ class GameView(arcade.View):
             while not posizione_valida:
                 r = random.randint(0, num_righe - 1)
                 c = random.randint(0, num_colonne - 1)
+                posizione_valida = True
                 for s in self.stati:
-                    if s.elenco_province[0] != self.mappa.province[r][c]:
-                        posizione_valida = True
+                    if s.elenco_province[0] == self.mappa.province[r][c]:
+                        posizione_valida = False
                         break
 
                 posizione_valida |= len(self.stati) == 0
-                        
+
             provincia = self.mappa.province[r][c]
             stato.aggiungi_provincia(provincia)
             self.stati.append(stato)
