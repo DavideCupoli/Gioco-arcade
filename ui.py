@@ -100,7 +100,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.gioco = gioco
         self.provincia_precedente = None
         self.soldati_da_muovere = 0
-        self.stato = gioco.stato_player
+        self.stato = gioco.stati[0]
         self.prov_da_selezionare = self.stato.elenco_province[0]
         self.provincia_selezionata = None
         self.province_selezionate = []

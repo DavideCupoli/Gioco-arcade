@@ -53,3 +53,5 @@ EST = 2
 OVEST = 3
 SUDOVEST = 4
 SUDEST = 5
+
+NOME_FILE = 'data'

@@ -56,14 +56,40 @@ class Stato:
 
         self.soldi = SOLDI
         self.punti_azione = PUNTI_AZIONE
-        # altri Stati con cui lo Stato è in guerra
-        self.guerra = []
 
         self.forma_truppe = arcade.shape_list.ShapeElementList()
         self.truppe = []
         self.batch = None
         
         self.spostamenti_truppe = []
+
+    def carica_dati(self, dati, mappa):
+        
+        self.elenco_province = []
+        
+        for p in dati['elenco_province']:
+            provincia = Provincia(  
+                p['x'],
+                p['y'],      
+                mappa.raggio, p['riga'],
+                p['colonna']
+            )
+        
+            provincia.stato = self
+            provincia.soldati = p['soldati']
+            provincia.abitanti = p['abitanti']
+            provincia.azioni = p['azioni']
+
+            mappa.province[provincia.riga][provincia.colonna] = provincia
+            
+            self.elenco_province.append(provincia)
+
+        self.colore = dati['colore']
+        self.soldi = dati['soldi']
+        self.punti_azioni = dati['punti_azione']
+        self.spostamenti_truppe = dati['spostamenti_truppe']
+
+        self.aggiorna_forma()
 
     # aggiorna le condizioni dello Stato, includendo le risorse (es. soldi)
     def aggiorna_statistiche(self):
@@ -276,12 +302,15 @@ class Stato:
          
 class Provincia:
 
-    def __init__(self, x, y, raggio):
+    def __init__(self, x, y, raggio, riga, colonna):
 
         # dati invariabili della provincia
         self.x = x
         self.y = y
         self.raggio = raggio
+        self.riga = riga
+        self.colonna = colonna
+
         self.esagono = Esagono(x, y, raggio)
 
         # condizioni della provincia
@@ -315,10 +344,13 @@ class Mappa:
     def __init__(self, num_righe, num_colonne, raggio):
 
         self.province = []
-
         self.num_righe = num_righe
         self.num_colonne = num_colonne
         self.raggio = raggio
+
+        for i in range(num_righe):
+            self.province.append([None] * num_colonne)
+                
 
     # aggiunge le province alla mappa: modifica la lista province
     def crea_province(self):
@@ -330,15 +362,23 @@ class Mappa:
             if i % 2 == 1:
                 x = self.raggio * math.cos(math.radians(30))
 
-            self.province.append([])
-
             for j in range(self.num_colonne):
-                self.province[-1].append(Provincia(x, y, self.raggio))
+                self.province[i][j] = Provincia(
+                    x,
+                    y,
+                    self.raggio,
+                    i,
+                    j
+                )
+                
                 x += self.raggio * math.cos(math.radians(30)) * 2
 
             y += self.raggio * (1 + math.sin(math.radians(30)))
+        
+        self.riferimento_vicine()
 
-        # a ogni provincia viene riferito quali sono le province vicine
+    # a ogni provincia viene riferito quali sono le province vicine
+    def riferimento_vicine(self):  
 
         len_fila = len(self.province[0])
         for i in range(0, len(self.province)):

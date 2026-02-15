@@ -1,9 +1,11 @@
 import arcade
 import random
+import pathlib
 from matematica import *
 from ui import *
 from oggetti import *
 from costanti import *
+from salvataggio import *
 
 # ESECUZIONE AZIONI
 
@@ -83,7 +85,8 @@ class GameView(arcade.View):
         self.background_color = arcade.color.BLACK
         
         # inizializzazione mappa
-        self.mappa = Mappa(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO)
+
+        self.mappa = Mappa(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO) 
         self.mappa.crea_province()
 
         # lista di tutti gli Stati nel gioco
@@ -101,8 +104,6 @@ class GameView(arcade.View):
         self.aggiungi_stati(NUM_STATI)
         self.espandi_stati()
 
-        self.stato_player = self.stati[0]
-
         self.interfaccia = GestoreInterfaccia(self)
        
         self.turno_stato = 0
@@ -113,7 +114,7 @@ class GameView(arcade.View):
         # quanti fps fa il gioco
         self.fps = 0
         self.num_updates = 0
-        # tempo di aggiornamento bot
+        # tempo di aggiornamento fps
         self.fps_time = 0
         
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
@@ -122,9 +123,8 @@ class GameView(arcade.View):
             stato = Stato()
             self.colori_stati_disponibili = stato.scegli_colore(self.colori_stati_disponibili)
 
-            num_righe = len(self.mappa.province)
-            num_colonne = len(self.mappa.province[0])
-
+            num_righe = self.mappa.num_righe
+            num_colonne = self.mappa.num_colonne
 
             r = None
             c = None
@@ -155,7 +155,7 @@ class GameView(arcade.View):
     # gli stati si espandono a turno
     def espandi_stati(self):
 
-        province = len(self.mappa.province) * len(self.mappa.province[0]) - len(self.stati)
+        province = len(self.mappa.province) * self.mappa.num_righe - len(self.stati)
         i = 0
         while province > 0:
             p = self.stati[i % len(self.stati)].espandi()
@@ -204,7 +204,7 @@ class GameView(arcade.View):
             50,
             50,
             50,
-            self.stati[0].colore
+            self.interfaccia.stato.colore
         )
         arcade.draw_lbwh_rectangle_outline(
             50,
@@ -223,7 +223,7 @@ class GameView(arcade.View):
         )
 
         arcade.draw_text(
-            f'Punti azione: {self.stato_player.punti_azione}',
+            f'Punti azione: {self.interfaccia.stato.punti_azione}',
             50,
             WINDOW_HEIGHT - 100
         )
@@ -283,6 +283,15 @@ class GameView(arcade.View):
         
     def on_key_press(self, key, key_modifiers):
 
+        if key == arcade.key.I:
+            salva_dati(self)
+            print('Dati salvati')         
+        if key == arcade.key.O and pathlib.Path('./' + NOME_FILE).is_file():
+            self.interfaccia.resetta()
+            carica_dati(self)
+        elif key == arcade.key.O:
+            print(f'Il file {NOME_FILE} non esiste.')
+
         # cambia la direzione verso cui si sposta la camera
         if key == arcade.key.UP:
             self.cam_direction[1] = 1
@@ -311,7 +320,7 @@ class GameView(arcade.View):
         if key == arcade.key.SPACE and self.turno_stato == 0:
             self.interfaccia.resetta()
 
-            self.nuovo_turno(self.stato_player)
+            self.nuovo_turno(self.interfaccia.stato)
             gestisci_bot(self)
             self.stati[self.indice_truppe].renderizza_truppe()
             
