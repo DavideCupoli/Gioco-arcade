@@ -68,20 +68,12 @@ class Stato:
         self.elenco_province = []
         
         for p in dati['elenco_province']:
-            provincia = Provincia(  
-                p['x'],
-                p['y'],      
-                mappa.raggio, p['riga'],
-                p['colonna']
-            )
-        
+            provincia = mappa.province[p['riga']][p['colonna']]
             provincia.stato = self
             provincia.soldati = p['soldati']
             provincia.abitanti = p['abitanti']
             provincia.azioni = p['azioni']
 
-            mappa.province[provincia.riga][provincia.colonna] = provincia
-            
             self.elenco_province.append(provincia)
 
         self.colore = dati['colore']
@@ -244,13 +236,16 @@ class Stato:
             self.muovi_soldati(soldati, origine, destinazione)    
 
     def aggiungi_azioni_spostamenti(self, spostamenti):
-        for s in spostamenti:
+        i = 0
+        while i < len(spostamenti):
+            s = spostamenti[i]
             origine = s['percorso'].pop(0)
             destinazione = s['percorso'][0]
             self.muovi_soldati(s['soldati'], origine, destinazione)
-            
             if len(s['percorso']) == 1:
-                self.spostamenti_truppe.remove(s)
+                spostamenti.pop(i)
+            else:
+                i += 1
         
     # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
@@ -266,7 +261,6 @@ class Stato:
             'azione': 'arrivo truppe',
             'stato': self,
             'soldati': soldati,
-            'origine': origine
         })
     
     # ritorna il massimo di soldati che possono essere arruolati in una provincia

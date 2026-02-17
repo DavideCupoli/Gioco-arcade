@@ -233,6 +233,12 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
     # rende visibile la barra e chiede quanti soldati arruolare
     def input_arruola_soldati(self):
+        province = [self.provincia_selezionata]
+        if self.province_multiple:
+            province = self.province_selezionate.copy()
+        for p in province:
+            if p.stato != self.stato:
+                return
         if self.barra.value == 0:
             self.barra.value = 1
         self.barra.visible = True

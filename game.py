@@ -29,9 +29,9 @@ def esegui_azioni(stato):
                                 destinazione.soldati - soldati
                             )
                         )
-                    for a in azione['destinazione'].azioni:
+                    for a in destinazione.azioni:
                         if a['azione'] == 'arrivo truppe' and a['stato'] == stato:
-                            azione['destinazione'].azioni.remove(a)
+                            destinazione.azioni.remove(a)
                             break
                             
             p.azioni = []
