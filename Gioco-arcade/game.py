@@ -38,54 +38,19 @@ def esegui_azioni(stato):
 
 # GESTIONE BOT
 
-# riordina province in base a quante province nemiche confinanti hanno in ordine decrescente
-def riordina_province(province):
-    lista = []
-    for i in range(len(province)):
-        p = province[i]
-        nemiche = 0
-        for v in p.province_vicine().copy():
-            if v != None and v.stato != p.stato:
-                nemiche += 1
-        
-        elemento = {
-            'provincia': p,
-            'nemiche': nemiche
-        }
-
-        if lista == []:
-            lista.append(elemento)
-        else:
-            pos = len(lista)
-            for j in range(len(lista)):
-                if lista[j]['nemiche'] > nemiche:
-                    pos = j
-                    break
-            lista.insert(pos, elemento)
-    province_riordinate = []
-    for e in lista:
-        province_riordinate.append(e['provincia'])
-    return province_riordinate
-
 def gestisci_bot(gioco):
     if len(gioco.stati) == 1:
         gioco.turno_stato = 0
         return
     while gioco.turno_stato != 0:
         stato = gioco.stati[gioco.turno_stato]
-        confini = riordina_province(stato.ottieni_confini(False))
+        confini = stato.ottieni_confini(False)
+        random.shuffle(confini)
         if len(confini) != 0:
-            for provincia in confini:
-                #soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
-                soldati = stato.massimo_soldati(provincia)
-                if soldati > 0:
-                    stato.arruola_soldati(soldati, provincia)
-                '''
-                if gioco.turno_stato == gioco.indice_truppe:
-                    print(f'Truppe arruolate: {soldati}, abitanti: {provincia.abitanti}')
-                '''
-                if stato.punti_azione == PUNTI_AZIONE // 2:
-                    break
+            for i in range(stato.punti_azione // 2):
+                provincia = random.choice(confini)  
+                soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
+                stato.arruola_soldati(soldati, provincia)
             for p in confini:
                 if p.soldati > 0:
                     vicine = p.province_vicine()
@@ -93,19 +58,19 @@ def gestisci_bot(gioco):
                     for v in vicine:
                         if v != None and v.stato != stato:
                             prov_confinanti.append(v)
-                    soldati = p.soldati // len(prov_confinanti)
-                    if soldati > 0:
-                        for c in prov_confinanti:
-                            if stato.punti_azione > 0:
-                                stato.aggiungi_spostamento(soldati, p, c)
-                            else:
-                                break
+                    soldati = int(p.soldati / len(prov_confinanti))
+                    for c in prov_confinanti:
+                        if stato.punti_azione > 0:
+                            stato.aggiungi_spostamento(soldati, p, c)
+                        else:
+                            break
 
         gioco.nuovo_turno(stato)
         if len(stato.elenco_province) == 0:
             gioco.stati.remove(stato)
             gioco.turno_stato -= 1
-            gioco.indice_truppe = 0
+        if gioco.turno_stato == len(gioco.stati):
+            gioco.turno_stato = 0
 
 # CLASSE PRINCIPALE
 
@@ -115,8 +80,6 @@ class GameView(arcade.View):
     def __init__(self):
 
         super().__init__()
-        
-        self.loop = False
 
         # colore sfondo
         self.background_color = arcade.color.BLACK
@@ -253,14 +216,10 @@ class GameView(arcade.View):
         )
 
         # disegna i soldi dello stato selezionato
-        colore = arcade.color.WHITE
-        if self.stati[self.indice_truppe].soldi < 0:
-            colore = arcade.color.RED
         arcade.draw_text(
             f'Soldi: {format(self.stati[self.indice_truppe].soldi, ",")}',
             50,
-            WINDOW_HEIGHT - 50,
-            color = colore
+            WINDOW_HEIGHT - 50
         )
 
         arcade.draw_text(
@@ -301,16 +260,6 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time):
         
-        if self.loop:
-            self.interfaccia.resetta()
-
-            self.nuovo_turno(self.interfaccia.stato)
-            gestisci_bot(self)
-            self.stati[self.indice_truppe].renderizza_truppe()
-            
-            for i in self.stati:
-                i.aggiorna_forma()
-        
         # aggiorna la posizione della camera
         self.camera.position = (
             self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
@@ -331,13 +280,8 @@ class GameView(arcade.View):
         stato.aggiorna_statistiche()
         stato.punti_azione = PUNTI_AZIONE
         self.turno_stato += 1
-        if self.turno_stato == len(self.stati):
-            self.turno_stato = 0
         
     def on_key_press(self, key, key_modifiers):
-
-        if key == arcade.key.Z:
-            self.loop = not self.loop
 
         if key == arcade.key.I:
             salva_dati(self)
