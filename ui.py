@@ -32,9 +32,9 @@ class BarraProgressiva(arcade.gui.UIWidget):
         arcade.gui.bind(self, "value", self.trigger_render)
 
     def on_event(self, event):
-        if str(event.__class__).find('UIMousePressEvent') != -1 and self.interfaccia.dentro(event.x, event.y, self):
+        if isinstance(event, arcade.gui.events.UIMousePressEvent) and self.interfaccia.dentro(event.x, event.y, self):
             self.value = max(0, min(1, (event.x - self.position.x) / self.width))
-        if str(event.__class__).find('UIMouseDragEvent') != -1: 
+        if isinstance(event, arcade.gui.events.UIMouseDragEvent): 
             x = event.x + event.dx
             y = event.y + event.dy
             if y > self.position.y and y - self.position.y < self.height:
@@ -67,7 +67,7 @@ class BottoneArruola(arcade.gui.UIFlatButton):
 
     # rende visible la barra e chiede quanti soldati spostare
     def on_event(self, event):
-        if (str(event.__class__).find('UIMousePressEvent') != -1 and 
+        if (isinstance(event, arcade.gui.UIMousePressEvent) and 
             self.interfaccia.dentro(event.x, event.y, self) and
             (self.interfaccia.provincia_selezionata != None or
             self.interfaccia.province_selezionate != [])
@@ -86,7 +86,7 @@ class BottoneMuovi(arcade.gui.UIFlatButton):
 
     # rende visible la barra e chiede quanti soldati spostare
     def on_event(self, event):
-        if (str(event.__class__).find('UIMousePressEvent') != -1 and 
+        if (isinstance(event, arcade.gui.UIMousePressEvent) and 
             self.interfaccia.dentro(event.x, event.y, self) and
             self.interfaccia.provincia_selezionata != None):
                 self.interfaccia.input_muovi_soldati()

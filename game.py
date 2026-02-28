@@ -11,7 +11,7 @@ from salvataggio import *
 
 # vengono eseguiti gli ordini dello Stato, controllando ogni sua provincia
 def esegui_azioni(stato):
-    for p in stato.elenco_province:
+    for p in stato.elenco_province.copy():
         if len(p.azioni) > 0:
             for azione in p.azioni:
                 if azione['azione'] == 'arruola':
@@ -25,7 +25,7 @@ def esegui_azioni(stato):
                         if destinazione.soldati < soldati:
                             stato.aggiungi_provincia(destinazione)
                         destinazione.soldati = int(
-                            math.fabs(
+                            abs(
                                 destinazione.soldati - soldati
                             )
                         )
@@ -101,11 +101,11 @@ def gestisci_bot(gioco):
                             else:
                                 break
 
-        gioco.nuovo_turno(stato)
         if len(stato.elenco_province) == 0:
             gioco.stati.remove(stato)
             gioco.turno_stato -= 1
             gioco.indice_truppe = 0
+        gioco.nuovo_turno(stato)
 
 # CLASSE PRINCIPALE
 
@@ -116,8 +116,6 @@ class GameView(arcade.View):
 
         super().__init__()
         
-        self.loop = False
-
         # colore sfondo
         self.background_color = arcade.color.BLACK
         
@@ -154,6 +152,8 @@ class GameView(arcade.View):
         # tempo di aggiornamento fps
         self.fps_time = 0
         
+        self.loop = False
+
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
         for i in range(n_stati):

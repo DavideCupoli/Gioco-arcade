@@ -5,7 +5,7 @@ import arcade
 MAPPA_RIGHE = 30
 MAPPA_COLONNE = 30
 RAGGIO = 30
-NUM_STATI = 9
+NUM_STATI = 10
 
 PUNTI_AZIONE = 10
 FONT_SIZE_TRUPPE = 8
@@ -54,4 +54,4 @@ OVEST = 3
 SUDOVEST = 4
 SUDEST = 5
 
-NOME_FILE = 'data.json'
+NOME_FILE = 'dati.json'

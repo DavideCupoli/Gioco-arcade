@@ -78,7 +78,7 @@ class Stato:
 
         self.colore = dati['colore']
         self.soldi = dati['soldi']
-        self.punti_azioni = dati['punti_azione']
+        self.punti_azione = dati['punti_azione']
         self.spostamenti_truppe = dati['spostamenti_truppe']
 
         self.aggiorna_forma()

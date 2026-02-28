@@ -135,17 +135,18 @@ def carica_dati(gioco):
     gioco.camera.position = dati['camera']['posizione']
     gioco.camera.zoom = dati['camera']['zoom']
     
-    i = 0
+    gioco.stati.clear()
     for s in dati['stati']:
         spostamenti = []
         for sp in s['spostamenti_truppe']:
             spostamenti.append(riconverti_spostamento(sp, gioco.mappa))
         s['spostamenti_truppe'] = spostamenti
-        gioco.stati[i].carica_dati(s, gioco.mappa)
-        if gioco.stati[i].colore == dati['colore']:
-            gioco.interfaccia.stato = gioco.stati[i]
-            gioco.indice_truppe = i
-        i += 1
+        stato = Stato()
+        stato.carica_dati(s, gioco.mappa)
+        if stato.colore == dati['colore']:
+            gioco.interfaccia.stato = stato
+            gioco.indice_truppe = len(gioco.stati)
+        gioco.stati.append(stato)
 
     for riga in gioco.mappa.province:
         for p in riga:
