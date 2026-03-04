@@ -83,6 +83,8 @@ def riconverti_azioni(stati, mappa, azioni):
 
 def salva_dati(gioco):
     dati = {
+        'righe': gioco.mappa.num_righe,
+        'colonne': gioco.mappa.num_colonne,
         'stati': [],
         'camera': {
             'posizione': gioco.camera.position,
@@ -134,6 +136,9 @@ def carica_dati(gioco):
 
     gioco.camera.position = dati['camera']['posizione']
     gioco.camera.zoom = dati['camera']['zoom']
+
+    gioco.mappa = Mappa(dati['righe'], dati['colonne'], RAGGIO)
+    gioco.mappa.crea_province()
     
     gioco.stati.clear()
     for s in dati['stati']:
