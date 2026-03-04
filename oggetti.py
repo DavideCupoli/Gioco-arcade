@@ -13,7 +13,10 @@ class IndiceTruppa:
     # modalita 2 -> muovi
     def __init__(self, provincia, num_soldati, modalita, batch):
 
+        self.provincia = provincia
         self.forma = None
+        self.soldati = num_soldati
+        self.modalita = modalita
 
         colore = None
         offset = 0

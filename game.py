@@ -76,14 +76,9 @@ def gestisci_bot(gioco):
         confini = riordina_province(stato.ottieni_confini(False))
         if len(confini) != 0:
             for provincia in confini:
-                #soldati = int(max(0, min(0.4, random.random()) * stato.massimo_soldati(provincia)))
                 soldati = stato.massimo_soldati(provincia)
                 if soldati > 0:
                     stato.arruola_soldati(soldati, provincia)
-                '''
-                if gioco.turno_stato == gioco.indice_truppe:
-                    print(f'Truppe arruolate: {soldati}, abitanti: {provincia.abitanti}')
-                '''
                 if stato.punti_azione == PUNTI_AZIONE // 2:
                     break
             for p in confini:
@@ -153,6 +148,8 @@ class GameView(arcade.View):
         self.fps_time = 0
         
         self.loop = False
+
+        self.shift_premuto = False
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -327,9 +324,9 @@ class GameView(arcade.View):
 
     def nuovo_turno(self, stato):
         esegui_azioni(stato)
+        stato.punti_azione = PUNTI_AZIONE
         stato.aggiungi_azioni_spostamenti(stato.spostamenti_truppe)
         stato.aggiorna_statistiche()
-        stato.punti_azione = PUNTI_AZIONE
         self.turno_stato += 1
         if self.turno_stato == len(self.stati):
             self.turno_stato = 0
@@ -426,6 +423,7 @@ class GameView(arcade.View):
             not self.interfaccia.muovi
             ):
             self.interfaccia.province_multiple = True
+            self.shift_premuto = True
 
     def on_key_release(self, key, key_modifiers):
         """
@@ -442,8 +440,8 @@ class GameView(arcade.View):
             self.cam_direction[0] = 0
 
         # disattiva la modalità province_multiple
-        if key == arcade.key.LSHIFT and len(self.interfaccia.province_selezionate) == 0:
-            self.interfaccia.province_multiple = False
+        if key == arcade.key.LSHIFT:
+            self.shift_premuto = False
 
     def seleziona_provincia(self, x, y):
 
@@ -471,15 +469,15 @@ class GameView(arcade.View):
             not self.interfaccia.dentro(x, y, self.interfaccia.bottone_arruola) and
             not self.interfaccia.dentro(x, y, self.interfaccia.barra)
             ):
-            if self.interfaccia.province_multiple:
+            if self.shift_premuto:
                 if not self.interfaccia.prov_da_selezionare in self.interfaccia.province_selezionate:
                     self.interfaccia.province_selezionate.append(self.interfaccia.prov_da_selezionare)
                 else:
                     self.interfaccia.province_selezionate.remove(self.interfaccia.prov_da_selezionare)
-                    if len(self.interfaccia.province_selezionate) == 0:
-                        self.interfaccia.province_multiple = False
             else:
                 self.interfaccia.provincia_selezionata = self.interfaccia.prov_da_selezionare
+                self.interfaccia.province_selezionate.clear()
+                self.interfaccia.province_multiple = False
             if self.interfaccia.muovi:
                 self.interfaccia.muovi_esercito()
      

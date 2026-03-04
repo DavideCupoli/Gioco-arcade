@@ -205,9 +205,11 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     
     # rende visible la barra e chiede quanti soldati spostare
     def input_muovi_soldati(self):
-        if (self.provincia_selezionata.stato == self.stato and
+        if (not self.province_multiple and
+            self.provincia_selezionata.stato == self.stato and
             self.stato.punti_azione != 0 and
-            self.provincia_selezionata.soldati != 0):
+            self.provincia_selezionata.soldati != 0
+            ):
             if self.barra.value == 0:
                 self.barra.value = 1
             self.barra.visible = True
@@ -260,6 +262,9 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.barra.visible = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
+
+        self.province_multiple = False
+        self.province_selezionate.clear()
 
     def resetta(self):
         self.barra.visible = False
