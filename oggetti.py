@@ -188,6 +188,7 @@ class Stato:
                     t = True
                 # si aggiunge a soldati_spostati il numero di soldati che devono arrivare nella provincia
                 if azione['azione'] == 'arrivo truppe' and azione['stato'] == self:
+                    print(soldati_spostati)
                     soldati_spostati += azione['soldati']
 
             if soldati_spostati != 0:
@@ -244,6 +245,7 @@ class Stato:
             s = spostamenti[i]
             origine = s['percorso'].pop(0)
             destinazione = s['percorso'][0]
+            print((origine.riga, origine.colonna), (destinazione.riga, destinazione.colonna))
             self.muovi_soldati(s['soldati'], origine, destinazione)
             if len(s['percorso']) == 1:
                 spostamenti.pop(i)
@@ -265,7 +267,7 @@ class Stato:
             'stato': self,
             'soldati': soldati,
         })
-    
+
     # ritorna il massimo di soldati che possono essere arruolati in una provincia
     def massimo_soldati(self, provincia):
         return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))
@@ -290,7 +292,7 @@ class Stato:
             for vicino in corrente.province_vicine():
                 if (vicino != None and
                     not vicino in visitati and
-                    (vicino.stato == self or vicino == destinazione)
+                    ((vicino.stato == self or True) or vicino == destinazione)
                     ):
                     visitati.add(vicino)
                     genitori[vicino] = corrente

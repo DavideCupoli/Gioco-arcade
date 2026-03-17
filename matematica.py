@@ -5,12 +5,14 @@ import math
 def distanza(puntoA, puntoB):
     return ((puntoA[0] - puntoB[0]) ** 2 + (puntoA[1] - puntoB[1]) ** 2) ** 0.5
 
+'''
 def funzione(m, q):
     return {
         'verticale': False,
         'pendenza': m,
         'intercetta': q
     }
+'''
 
 def retta(puntoA, puntoB):
     x1 = puntoA[0]

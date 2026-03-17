@@ -76,11 +76,9 @@ def gestisci_bot(gioco):
         confini = riordina_province(stato.ottieni_confini(False))
         if len(confini) != 0:
             for provincia in confini:
-                soldati = stato.massimo_soldati(provincia)
-                if soldati > 0:
+                soldati = stato.massimo_soldati(provincia) * 0
+                if soldati > provincia.soldati:
                     stato.arruola_soldati(soldati, provincia)
-                if stato.punti_azione == PUNTI_AZIONE // 2:
-                    break
             for p in confini:
                 if p.soldati > 0:
                     vicine = p.province_vicine()
@@ -307,7 +305,7 @@ class GameView(arcade.View):
             
             for i in self.stati:
                 i.aggiorna_forma()
-        
+
         # aggiorna la posizione della camera
         self.camera.position = (
             self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
