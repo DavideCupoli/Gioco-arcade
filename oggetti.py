@@ -66,6 +66,8 @@ class Stato:
         
         self.spostamenti_truppe = []
 
+        self.azioni = {}
+
     def carica_dati(self, dati, mappa):
         
         self.elenco_province = []
@@ -155,6 +157,7 @@ class Stato:
             self.forma_truppe.draw()           
             self.batch.draw()
 
+    '''
     def renderizza_truppe(self):
         
         self.forma_truppe.clear()
@@ -163,7 +166,7 @@ class Stato:
 
         province = self.elenco_province + self.ottieni_confini(True)
 
-        for p in province:
+        for p, azione in self.azioni.items():
 
             indice = None
 
@@ -195,6 +198,56 @@ class Stato:
                 indice = IndiceTruppa(p, soldati_spostati, 2, self.batch)
                 self.truppe.append(indice)
                 self.forma_truppe.append(indice.forma)
+
+    '''
+    def renderizza_truppe(self):
+
+        self.forma_truppe.clear()
+        self.batch = Batch()
+        self.truppe = []
+
+        destinazioni = {}
+
+        for p in self.elenco_province:
+
+            indice = None
+
+            # soldati già stanziati
+            soldati_stanziati = p.soldati
+            if soldati_stanziati != 0 and p.stato == self:
+                indice = IndiceTruppa(p, soldati_stanziati, 0, self.batch)
+                self.truppe.append(indice)
+                self.forma_truppe.append(indice.forma)
+            
+            if (p in self.azioni and
+                self.azioni[p]['azione'] == 'arruola' and
+                self.azioni[p]['soldati'] > 0
+                ):
+                indice = IndiceTruppa(p, self.azioni[p]['soldati'], 1, self.batch)
+                self.truppe.append(indice)
+                self.forma_truppe.append(indice.forma)
+            elif p in self.azioni:
+                for azione in self.azioni[p]:
+                    if azione['azione'] == 'muovi' and azione['destinazione'] in destinazioni:
+                        destinazioni[azione['destinazione']] += azione['soldati']
+                    elif azione['azione'] == 'muovi':
+                        destinazioni[azione['destinazione']] = azione['soldati']
+
+            for azione in self.azioni[p]:
+                # soldati da arruolare
+                if azione['azione'] == 'arruola' and azione['soldati'] != 0:
+                    indice = IndiceTruppa(p, azione['soldati'], 1, self.batch)
+                    self.truppe.append(indice)
+                    self.forma_truppe.append(indice.forma)
+
+                    if azione['azione'] == 'muovi' and azione['destinazione'] in destinazioni:
+                        destinazioni[azione['destinazione']] += azione['soldati']
+                    elif azione['azione'] == 'muovi':
+                        destinazioni[azione['destinazione']] = azione['soldati']
+        for p, soldati_spostati in destinazioni.items():
+            indice = IndiceTruppa(p, soldati_spostati, 2, self.batch)
+            self.truppe.append(indice)
+            self.forma_truppe.append(indice.forma)
     
     # restituisce le province lungo i confini con gli altri Stati. Se modalita è False restituisce le province confinanti all'interno dello Stato, se modalita è True, le province restituite sono appartenenti agli Stati confinanti
 
@@ -216,15 +269,20 @@ class Stato:
         self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
         provincia.abitanti -= soldati
         self.punti_azione -= 1
-        # aggiungi azioni
-        for azione in provincia.azioni:
-            if azione['azione'] == 'arruola':
-                azione['soldati'] += soldati   
-                return
-        provincia.azioni.append({
+
+        azione = {
             'azione': 'arruola',
             'soldati': soldati
-        })
+        }
+
+        if provincia in self.azioni:
+            for azione in self.azioni[provincia]:
+                if azione['azione'] == 'arruola':
+                    azione['soldati'] += soldati
+                    return
+            self.azioni[provincia].append(azione)
+        else:
+            self.azioni[provincia] = [azione]
 
     def aggiungi_spostamento(self, soldati, origine, destinazione):
         percorso = self.trova_percorso(origine, destinazione)
@@ -257,16 +315,23 @@ class Stato:
         origine.soldati -= soldati 
         self.punti_azione -= 1
         # aggiungi azioni
-        origine.azioni.append({
+        azione = {
             'azione': 'muovi',
             'destinazione': destinazione,
             'soldati': soldati
-        })
-        destinazione.azioni.append({
+        }
+        if origine in self.azioni:
+            self.azioni[origine].append(azione)
+        else:
+            self.azioni[origine] = [azione]
+
+        '''
+        self.azioni[destinazione].append({
             'azione': 'arrivo truppe',
-            'stato': self,
-            'soldati': soldati,
+            'stato': destinazione.stato,
+            'soldati': soldati
         })
+        '''
 
     # ritorna il massimo di soldati che possono essere arruolati in una provincia
     def massimo_soldati(self, provincia):

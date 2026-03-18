@@ -13,7 +13,7 @@ from salvataggio import *
 def esegui_azioni(stato):
     for p in stato.elenco_province.copy():
         if len(p.azioni) > 0:
-            for azione in p.azioni:
+            for p, azione in stato.azioni.items():
                 if azione['azione'] == 'arruola':
                     p.soldati += azione['soldati']
                 if azione['azione'] == 'muovi':
@@ -29,10 +29,12 @@ def esegui_azioni(stato):
                                 destinazione.soldati - soldati
                             )
                         )
-                    for a in destinazione.azioni:
+                    '''
+                    for a in stato.azioni[destinazione]:
                         if a['azione'] == 'arrivo truppe' and a['stato'] == stato:
                             destinazione.azioni.remove(a)
                             break
+                    '''
                             
             p.azioni = []
 
