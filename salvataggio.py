@@ -8,7 +8,8 @@ Cose da salvare:
     - province
         - soldati
         - abitanti
-        - riga - colonna
+        - riga
+        - colonna
         - azioni
     - colore
     - soldi
@@ -26,25 +27,23 @@ def converti_spostamento(spostamento):
         s['percorso'][i] = (provincia.riga, provincia.colonna)
     return s
 
+'''
 def converti_azioni(azioni):
     
     a = []
 
-    for az in azioni:
-        if az['azione'] == 'muovi':
-            azione = az.copy()
-            dest = azione['destinazione']
-            azione['destinazione'] = (dest.riga, dest.colonna)
-            a.append(azione)
-        elif az['azione'] == 'arrivo truppe':
-            azione = az.copy()
-            azione['stato colore'] = azione['stato'].colore
-            del azione['stato']
-            a.append(azione)
-        else:
-            a.append(az)
+    for azs in azioni.values():
+        for az in azs:
+            if az['azione'] == 'muovi':
+                azione = az.copy()
+                dest = azione['destinazione']
+                azione['destinazione'] = (dest.riga, dest.colonna)
+                a.append(azione)
+            else:
+                a.append(az)
 
     return a
+'''
 
 def riconverti_spostamento(spostamento, mappa):
     for i in range(len(spostamento['percorso'])):
@@ -60,6 +59,7 @@ def trova_stato(stati, colore):
             return s
     return None
 
+'''
 def riconverti_azioni(stati, mappa, azioni):
 
     a = []
@@ -71,15 +71,48 @@ def riconverti_azioni(stati, mappa, azioni):
             colonna = azione['destinazione'][1]
             azione['destinazione'] = mappa.province[riga][colonna]
             a.append(azione)
-        elif az['azione'] == 'arrivo truppe':
-            azione = az.copy()
-            azione['stato'] = trova_stato(stati, azione['stato colore'])
-            del azione['stato colore']
-            a.append(azione)
         else:
             a.append(az)
 
     return a
+'''
+
+def converti_azioni(azioni):
+    azioni2 = {}
+
+    for p, az2 in azioni.items():
+        a = []
+        for az in az2:
+            if az['azione'] == 'muovi':
+                azione = az.copy()
+                dest = azione['destinazione']
+                azione['destinazione'] = (dest.riga, dest.colonna)
+                a.append(azione)
+            else:
+                a.append(az.copy())
+        azioni2[str(p.riga) + ',' + str(p.colonna)] = a
+
+    return azioni2
+
+def riconverti_azioni(azioni, mappa):
+    azioni2 = {}
+
+    for p, az2 in azioni.items():
+        a = []
+        for az in az2:
+            if az['azione'] == 'muovi':
+                azione = az.copy()
+                riga = azione['destinazione'][0]
+                colonna = azione['destinazione'][1]
+                azione['destinazione'] = mappa.province[riga][colonna]
+                a.append(azione)
+            else:
+                a.append(az.copy())
+        riga, colonna = p.split(',')
+        provincia = mappa.province[int(riga)][int(colonna)]
+        azioni2[provincia] = a
+
+    return azioni2
 
 def salva_dati(gioco):
     dati = {
@@ -100,8 +133,7 @@ def salva_dati(gioco):
                 'riga': p.riga,
                 'colonna': p.colonna,
                 'soldati': p.soldati,
-                'abitanti': p.abitanti,
-                'azioni': converti_azioni(p.azioni)
+                'abitanti': p.abitanti
             }
             province.append(provincia)
 
@@ -115,7 +147,8 @@ def salva_dati(gioco):
             'colore': s.colore,
             'soldi': s.soldi,
             'punti_azione': s.punti_azione,
-            'spostamenti_truppe': spostamenti
+            'spostamenti_truppe': spostamenti,
+            'azioni': converti_azioni(s.azioni)
         }
         dati['stati'].append(stato)
 
@@ -145,6 +178,7 @@ def carica_dati(gioco):
         spostamenti = []
         for sp in s['spostamenti_truppe']:
             spostamenti.append(riconverti_spostamento(sp, gioco.mappa))
+        s['azioni'] = riconverti_azioni(s['azioni'], gioco.mappa)
         s['spostamenti_truppe'] = spostamenti
         stato = Stato()
         stato.carica_dati(s, gioco.mappa)
@@ -152,10 +186,6 @@ def carica_dati(gioco):
             gioco.interfaccia.stato = stato
             gioco.indice_truppe = len(gioco.stati)
         gioco.stati.append(stato)
-
-    for riga in gioco.mappa.province:
-        for p in riga:
-            p.azioni = riconverti_azioni(gioco.stati, gioco.mappa, p.azioni)
 
     gioco.stati[0], gioco.stati[gioco.indice_truppe] = gioco.stati[gioco.indice_truppe], gioco.stati[0]
     

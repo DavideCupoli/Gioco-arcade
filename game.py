@@ -11,32 +11,24 @@ from salvataggio import *
 
 # vengono eseguiti gli ordini dello Stato, controllando ogni sua provincia
 def esegui_azioni(stato):
-    for p in stato.elenco_province.copy():
-        if len(p.azioni) > 0:
-            for p, azione in stato.azioni.items():
-                if azione['azione'] == 'arruola':
-                    p.soldati += azione['soldati']
-                if azione['azione'] == 'muovi':
-                    destinazione = azione['destinazione']
-                    soldati = azione['soldati']
-                    if destinazione.stato == stato:
-                        destinazione.soldati += soldati
-                    else:
-                        if destinazione.soldati < soldati:
-                            stato.aggiungi_provincia(destinazione)
-                        destinazione.soldati = int(
-                            abs(
-                                destinazione.soldati - soldati
-                            )
+    for p, azioni in stato.azioni.items():
+        for azione in azioni:
+            if azione['azione'] == 'arruola':
+                p.soldati += azione['soldati']
+            if azione['azione'] == 'muovi':
+                destinazione = azione['destinazione']
+                soldati = azione['soldati']
+                if destinazione.stato == stato:
+                    destinazione.soldati += soldati
+                else:
+                    if destinazione.soldati < soldati:
+                        stato.aggiungi_provincia(destinazione)
+                    destinazione.soldati = int(
+                        abs(
+                            destinazione.soldati - soldati
                         )
-                    '''
-                    for a in stato.azioni[destinazione]:
-                        if a['azione'] == 'arrivo truppe' and a['stato'] == stato:
-                            destinazione.azioni.remove(a)
-                            break
-                    '''
-                            
-            p.azioni = []
+                    )
+    stato.azioni = {}
 
 # GESTIONE BOT
 
@@ -78,7 +70,7 @@ def gestisci_bot(gioco):
         confini = riordina_province(stato.ottieni_confini(False))
         if len(confini) != 0:
             for provincia in confini:
-                soldati = stato.massimo_soldati(provincia) * 0
+                soldati = stato.massimo_soldati(provincia)
                 if soldati > provincia.soldati:
                     stato.arruola_soldati(soldati, provincia)
             for p in confini:
