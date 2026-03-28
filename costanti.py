@@ -2,15 +2,17 @@ import arcade
 
 # informazioni legate al gioco
 
-MAPPA_RIGHE = 30
-MAPPA_COLONNE = 30
-RAGGIO = 30
-NUM_STATI = 1
+MAPPA_RIGHE = 10
+MAPPA_COLONNE = 10
+RAGGIO = 50
+NUM_STATI = 2
 
 PUNTI_AZIONE = 10
-FONT_SIZE_TRUPPE = 8
+FONT_SIZE_TRUPPE = 40 / 3
+SPESSORE_ESAGONI = 2
+SPESSORE_PROVINCIA_DA_SELEZIONARE = 3
 ABITANTI_PER_PROVINCIA = 10000
-SOLDI = 0
+SOLDI = 2000
 TASSO_ARRUOLAMENTO = 0.1
 PRODUZIONE_PER_ABITANTE = 0.005
 COSTO_MANTENIMENTO_SOLDATO = 0.2
@@ -26,8 +28,8 @@ WINDOW_TITLE = "The Age of Conquests"
 CAM_SPEED = 200
 
 # di quanto aumenta/diminuisce lo zoom
-ZOOM = 0.10
-MAXIMUM_ZOOM = 1.5
+ZOOM = 0.20
+MAXIMUM_ZOOM = 0.7
 
 # colori nel gioco usati dagli stati
 COLORI_STATI = [
@@ -37,7 +39,8 @@ COLORI_STATI = [
     arcade.color.ORANGE,
     arcade.color.CYAN,
     arcade.color.PURPLE,
-    arcade.color.BROWN, arcade.color.GRAY,
+    arcade.color.BROWN,
+    arcade.color.GRAY,
     arcade.color.PINK,
     arcade.color.BLUE,
     arcade.color.CARIBBEAN_GREEN

@@ -103,9 +103,6 @@ class GameView(arcade.View):
 
         super().__init__()
         
-        # colore sfondo
-        self.background_color = arcade.color.BLACK
-        
         # inizializzazione mappa
 
         self.mappa = Mappa(MAPPA_RIGHE, MAPPA_COLONNE, RAGGIO) 
@@ -136,12 +133,22 @@ class GameView(arcade.View):
         # quanti fps fa il gioco
         self.fps = 0
         self.num_updates = 0
+        self.tot_updates = 0
         # tempo di aggiornamento fps
         self.fps_time = 0
         
         self.loop = False
 
         self.shift_premuto = False
+
+        self.sfondo = None
+        self.sfondo_larghezza = 626
+        self.sfondo_altezza = 352
+
+        self.carica_sprites()
+
+    def carica_sprites(self):
+        self.sfondo = arcade.load_texture("./assets/mare.png")
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -203,6 +210,18 @@ class GameView(arcade.View):
 
         # utilizza la posizione della camera per disegnare le figure sullo schermo
         with self.camera.activate():
+
+            for i in range(-2, 2):
+                for j in range(-2, 2):
+                    arcade.draw_texture_rect(
+                        self.sfondo,
+                        arcade.LBWH(
+                            (i + (math.cos(self.tot_updates / 100) / 200)) * self.sfondo_larghezza * 5,
+                            j * self.sfondo_altezza * 5,
+                            self.sfondo_larghezza * 5,
+                            self.sfondo_altezza * 5
+                        )
+                    )
     
             for i in self.stati:
                 i.disegna()
@@ -212,7 +231,7 @@ class GameView(arcade.View):
 
             # disegna la provincia da selezionare
             punti = self.interfaccia.prov_da_selezionare.esagono.punti
-            arcade.draw_polygon_outline(punti, arcade.color.BLACK, 2)
+            arcade.draw_polygon_outline(punti, arcade.color.BLACK, SPESSORE_PROVINCIA_DA_SELEZIONARE)
             
             # disegna la provincia selezionata (se non è nulla)
             province = [self.interfaccia.provincia_selezionata]
@@ -221,7 +240,7 @@ class GameView(arcade.View):
             for p in province:
                 if p != None:
                     punti = p.esagono.punti
-                    arcade.draw_polygon_outline(punti, arcade.color.WHITE, 3)
+                    arcade.draw_polygon_outline(punti, arcade.color.WHITE, SPESSORE_PROVINCIA_DA_SELEZIONARE)
             
             self.stati[self.indice_truppe].mostra_truppe()
 
@@ -241,7 +260,7 @@ class GameView(arcade.View):
             2
         )
 
-        # disegna i soldi dello stato selezionato
+        # disegna il numero dei soldi dello stato selezionato
         colore = arcade.color.WHITE
         if self.stati[self.indice_truppe].soldi < 0:
             colore = arcade.color.RED
@@ -300,12 +319,18 @@ class GameView(arcade.View):
             for i in self.stati:
                 i.aggiorna_forma()
 
-        # aggiorna la posizione della camera
-        self.camera.position = (
-            self.camera.position[0] + (self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom),
-            self.camera.position[1] + (self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom)
-        )
+        c = [self.camera.position[0], self.camera.position[1]]
 
+        # aggiorna la posizione della camera
+
+        c[0] += self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom
+        c[1] += self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom
+
+        c[0] = max(500, min(1500, c[0]))
+        c[1] = max(200, min(1200, c[1]))
+
+        self.camera.position = (c[0], c[1])
+        
         if self.fps_time >= 1:
             self.fps = self.num_updates
             self.fps_time = 0
@@ -313,6 +338,7 @@ class GameView(arcade.View):
 
         self.fps_time += delta_time
         self.num_updates += 1
+        self.tot_updates += 1
 
     def nuovo_turno(self, stato):
         esegui_azioni(stato)

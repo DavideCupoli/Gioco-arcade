@@ -221,7 +221,6 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     # chiede allo Stato di aggiungere un'azione per spostare una truppa
     def muovi_esercito(self):
         soldati = self.soldati_barra(self.provincia_selezionata)
-        print(soldati)
         if (self.muovi and
             self.provincia_precedente != self.provincia_selezionata and
             soldati != 0
@@ -242,6 +241,17 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         for p in province:
             if p.stato != self.stato:
                 return
+            if p in self.stato.azioni:
+                azione = None
+                for az in self.stato.azioni[p]:
+                    if az['azione'] == 'arruola':
+                        azione = az
+                        p.abitanti += az['soldati']
+                        break
+                if azione != None:
+                    self.stato.punti_azione += 1
+                    self.stato.azioni[p].remove(azione)
+   
         if self.barra.value == 0:
             self.barra.value = 1
         self.barra.visible = True

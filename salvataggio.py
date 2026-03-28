@@ -10,11 +10,11 @@ Cose da salvare:
         - abitanti
         - riga
         - colonna
-        - azioni
     - colore
     - soldi
     - punti_azione
     - spostamenti_truppe
+    - azioni
 - posizione, zoom camera
 - colore stato principale gioco
 '''
@@ -26,24 +26,6 @@ def converti_spostamento(spostamento):
         provincia = s['percorso'][i]
         s['percorso'][i] = (provincia.riga, provincia.colonna)
     return s
-
-'''
-def converti_azioni(azioni):
-    
-    a = []
-
-    for azs in azioni.values():
-        for az in azs:
-            if az['azione'] == 'muovi':
-                azione = az.copy()
-                dest = azione['destinazione']
-                azione['destinazione'] = (dest.riga, dest.colonna)
-                a.append(azione)
-            else:
-                a.append(az)
-
-    return a
-'''
 
 def riconverti_spostamento(spostamento, mappa):
     for i in range(len(spostamento['percorso'])):
@@ -58,24 +40,6 @@ def trova_stato(stati, colore):
         if s.colore == colore:
             return s
     return None
-
-'''
-def riconverti_azioni(stati, mappa, azioni):
-
-    a = []
-
-    for az in azioni:
-        if az['azione'] == 'muovi':
-            azione = az.copy()
-            riga = azione['destinazione'][0]
-            colonna = azione['destinazione'][1]
-            azione['destinazione'] = mappa.province[riga][colonna]
-            a.append(azione)
-        else:
-            a.append(az)
-
-    return a
-'''
 
 def converti_azioni(azioni):
     azioni2 = {}

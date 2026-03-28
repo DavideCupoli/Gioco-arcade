@@ -219,14 +219,18 @@ class Stato:
             'soldati': soldati
         }
 
+        '''
         if provincia in self.azioni:
-            for azione in self.azioni[provincia]:
-                if azione['azione'] == 'arruola':
-                    azione['soldati'] += soldati
+            for az in self.azioni[provincia]:
+                if az['azione'] == 'arruola':
+                    self.soldi += COSTO_SOLDATO * az['soldati']
+                    az['soldati'] = soldati
+                    self.punti_azioni += 1
                     return
             self.azioni[provincia].append(azione)
         else:
-            self.azioni[provincia] = [azione]
+            '''
+        self.azioni[provincia] = [azione]
 
     def aggiungi_spostamento(self, soldati, origine, destinazione):
         percorso = self.trova_percorso(origine, destinazione)
@@ -268,14 +272,6 @@ class Stato:
         else:
             self.azioni[origine] = [azione]
 
-        '''
-        self.azioni[destinazione].append({
-            'azione': 'arrivo truppe',
-            'stato': destinazione.stato,
-            'soldati': soldati
-        })
-        '''
-
     # ritorna il massimo di soldati che possono essere arruolati in una provincia
     def massimo_soldati(self, provincia):
         return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))
@@ -299,8 +295,7 @@ class Stato:
                 return self.ricostruisci_percorso(genitori, destinazione)
             for vicino in corrente.province_vicine():
                 if (vicino != None and
-                    not vicino in visitati and
-                    ((vicino.stato == self or True) or vicino == destinazione)
+                    not vicino in visitati
                     ):
                     visitati.add(vicino)
                     genitori[vicino] = corrente
@@ -357,7 +352,6 @@ class Mappa:
 
         for i in range(num_righe):
             self.province.append([None] * num_colonne)
-                
 
     # aggiunge le province alla mappa: modifica la lista province
     def crea_province(self):
@@ -444,5 +438,5 @@ class Mappa:
                     end = punti[(i + 1) % len(punti)]
                     linee.append(start)
                     linee.append(end)
-        arcade.draw_lines(linee, arcade.color.BLACK, 1)
+        arcade.draw_lines(linee, arcade.color.BLACK, SPESSORE_ESAGONI)
 
