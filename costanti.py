@@ -2,10 +2,10 @@ import arcade
 
 # informazioni legate al gioco
 
-MAPPA_RIGHE = 10
-MAPPA_COLONNE = 10
+MAPPA_RIGHE = 20
+MAPPA_COLONNE = 20
 RAGGIO = 50
-NUM_STATI = 2
+NUM_STATI = 8
 
 PUNTI_AZIONE = 10
 FONT_SIZE_TRUPPE = 40 / 3

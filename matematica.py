@@ -109,8 +109,8 @@ class Esagono:
         self.destra.append(self.sopra[0])
 
     def dentro(self, x, y):
-        if x == 0 and y == 0:
-            return True
+        #if x == 0 and y == 0:
+        #    return True
         r = retta((self.centro_x, self.centro_y), (x, y))
         if r == 1:
             return distanza(

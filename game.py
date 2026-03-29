@@ -102,6 +102,8 @@ class GameView(arcade.View):
     def __init__(self):
 
         super().__init__()
+
+        arcade.set_background_color(arcade.color.WHITE)
         
         # inizializzazione mappa
 
@@ -142,13 +144,13 @@ class GameView(arcade.View):
         self.shift_premuto = False
 
         self.sfondo = None
-        self.sfondo_larghezza = 626
-        self.sfondo_altezza = 352
+        self.sfondo_larghezza = 1024
+        self.sfondo_altezza = 1024
 
         self.carica_sprites()
 
     def carica_sprites(self):
-        self.sfondo = arcade.load_texture("./assets/mare.png")
+        self.sfondo = arcade.load_texture("./assets/water.png")
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -213,16 +215,25 @@ class GameView(arcade.View):
 
             for i in range(-2, 2):
                 for j in range(-2, 2):
+
+                    sfondo = self.sfondo
+
+                    if j % 2 == 1:
+                        sfondo = sfondo.flip_vertically()
+                    if i % 2 == 1:
+                        sfondo = sfondo.flip_horizontally()
+
                     arcade.draw_texture_rect(
-                        self.sfondo,
+                        sfondo,
                         arcade.LBWH(
                             (i + (math.cos(self.tot_updates / 100) / 200)) * self.sfondo_larghezza * 5,
                             j * self.sfondo_altezza * 5,
                             self.sfondo_larghezza * 5,
                             self.sfondo_altezza * 5
-                        )
+                        ),
+                        alpha=200
                     )
-    
+            
             for i in self.stati:
                 i.disegna()
 
