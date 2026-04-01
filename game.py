@@ -67,7 +67,7 @@ def gestisci_bot(gioco):
         return
     while gioco.turno_stato != 0:
         stato = gioco.stati[gioco.turno_stato]
-        confini = riordina_province(stato.ottieni_confini(False))
+        confini = riordina_province(stato.ottieni_confini(False, True))
         if len(confini) != 0:
             for provincia in confini:
                 soldati = stato.massimo_soldati(provincia)
@@ -78,7 +78,7 @@ def gestisci_bot(gioco):
                     vicine = p.province_vicine()
                     prov_confinanti = []
                     for v in vicine:
-                        if v != None and v.stato != stato:
+                        if v != None and v.stato != stato and v.stato in stato.guerra:
                             prov_confinanti.append(v)
                     soldati = p.soldati // len(prov_confinanti)
                     if soldati > 0:
@@ -143,14 +143,17 @@ class GameView(arcade.View):
 
         self.shift_premuto = False
 
-        self.sfondo = None
+        self.sfondo = [[None, None], [None, None]]
         self.sfondo_larghezza = 1024
         self.sfondo_altezza = 1024
 
         self.carica_sprites()
 
     def carica_sprites(self):
-        self.sfondo = arcade.load_texture("./assets/water.png")
+        self.sfondo[0][0] = arcade.load_texture("./assets/water.png")
+        self.sfondo[0][1] = self.sfondo[0][0].flip_horizontally()
+        self.sfondo[1][0] = self.sfondo[0][0].flip_vertically()
+        self.sfondo[1][1] = self.sfondo[1][0].flip_horizontally()
 
     # aggiunge un certo numero di Stati alla lista stati, impostando il colore e aggiungendo una provincia con una posizione casuale
     def aggiungi_stati(self, n_stati):
@@ -216,12 +219,7 @@ class GameView(arcade.View):
             for i in range(-2, 2):
                 for j in range(-2, 2):
 
-                    sfondo = self.sfondo
-
-                    if j % 2 == 1:
-                        sfondo = sfondo.flip_vertically()
-                    if i % 2 == 1:
-                        sfondo = sfondo.flip_horizontally()
+                    sfondo = self.sfondo[i % 2][j % 2]
 
                     arcade.draw_texture_rect(
                         sfondo,
@@ -270,6 +268,31 @@ class GameView(arcade.View):
             arcade.color.BLACK,
             2
         )
+
+        x = WINDOW_WIDTH / 2
+        y = WINDOW_HEIGHT / 6 * 5
+        larghezza = 30
+
+        stati_guerra = list(self.interfaccia.stato.guerra.keys())
+
+        for i in range(len(stati_guerra)):
+            arcade.draw_lbwh_rectangle_filled(
+                x + (i * larghezza),
+                y,
+                larghezza,
+                larghezza,
+                stati_guerra[i].colore
+            )
+
+        if len(stati_guerra) != 0:
+            arcade.draw_lbwh_rectangle_outline(
+                x,
+                y,
+                larghezza * len(stati_guerra),
+                larghezza,
+                arcade.color.BLACK,
+                2
+            )
 
         # disegna il numero dei soldi dello stato selezionato
         colore = arcade.color.WHITE

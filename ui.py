@@ -91,6 +91,24 @@ class BottoneMuovi(arcade.gui.UIFlatButton):
             self.interfaccia.provincia_selezionata != None):
                 self.interfaccia.input_muovi_soldati()
 
+class BottoneGuerra(arcade.gui.UIFlatButton):
+    def __init__(self, width, height, text, interfaccia):
+        super().__init__(
+            width = width,
+            height = height,
+            text = text,
+            size_hint = None
+        )
+        self.interfaccia = interfaccia
+
+    def on_event(self, event):
+        if (isinstance(event, arcade.gui.UIMousePressEvent) and
+            self.interfaccia.dentro(event.x, event.y, self) and
+            self.interfaccia.provincia_selezionata != None and
+            self.interfaccia.provincia_selezionata.stato != self.interfaccia.stato
+        ):
+            self.interfaccia.dichiara_guerra(self.interfaccia.provincia_selezionata.stato)
+
 # Classe che contiene le funzioni principali per la gestione della GUI e alcune funzioni per dare ordini allo Stato del giocatore principale
 class GestoreInterfaccia(arcade.gui.UIManager):
 
@@ -121,15 +139,22 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     def setup(self):
 
         self.bottone_arruola = BottoneArruola(
-            100,
+            120,
             50,
             'Arruola',
             self
         )
         self.bottone_muovi = BottoneMuovi(
-            100,
+            120,
             50,
             'Muovi',
+            self
+        )
+
+        self.bottone_guerra = BottoneGuerra(
+            120,
+            50,
+            'Dichiara guerra',
             self
         )
 
@@ -158,6 +183,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             align_x = -10,
             align_y = 70
         ) 
+
+        self.layout.add(
+            self.bottone_guerra,
+            anchor_x='right',
+            anchor_y='bottom',
+            align_x = -10,
+            align_y = 130
+        )
 
         self.layout.add(
             self.barra,
@@ -223,6 +256,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         soldati = self.soldati_barra(self.provincia_selezionata)
         if (self.muovi and
             self.provincia_precedente != self.provincia_selezionata and
+            (self.provincia_selezionata.stato in self.provincia_precedente.stato.guerra or
+            self.provincia_selezionata.stato == self.stato) and
             soldati != 0
             ):
             self.stato.aggiungi_spostamento(soldati, self.provincia_precedente, self.provincia_selezionata)
@@ -286,3 +321,17 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.province_multiple = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
+
+    def dichiara_guerra(self, nemico):
+
+        if not nemico in self.stato.guerra:
+            self.stato.guerra[nemico] = {
+                'soldati_morti': 0,
+                'province_conquistate': 0
+            }
+            nemico.guerra[self.stato] = {
+                'soldati_morti': 0,
+                'province_conquistate': 0
+            }
+
+            print('Hai dichiarato guerra a uno stato')

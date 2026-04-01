@@ -68,6 +68,15 @@ class Stato:
 
         self.azioni = {}
 
+        '''
+        Chiavi: stati in guerra
+        Valori: {
+            'soldati morti stato nemico'
+            'province conquistate stato nemico'
+        }
+        '''
+        self.guerra = {}
+
     def carica_dati(self, dati, mappa):
         
         self.elenco_province = []
@@ -193,17 +202,24 @@ class Stato:
             self.truppe.append(indice)
             self.forma_truppe.append(indice.forma)
 
-    # restituisce le province lungo i confini con gli altri Stati. Se modalita è False restituisce le province confinanti all'interno dello Stato, se modalita è True, le province restituite sono appartenenti agli Stati confinanti
-
-    def ottieni_confini(self, modalita):
+    # restituisce le province lungo i confini con gli altri Stati. 
+    def ottieni_confini(self, interni, guerra):
         confini = []
         for p in self.elenco_province:
             vicine = p.province_vicine()
             for v in vicine:
-                if v != None and v.stato != self and not modalita:
+                if (v != None and
+                    v.stato != self and
+                    interni and
+                    ((guerra and v.stato in self.guerra) or not guerra)
+                    ):
                     confini.append(p)
                     break
-                if v != None and v.stato != self and modalita:
+                if (v != None and
+                    v.stato != self and
+                    not interni and
+                    ((guerra and v.stato in self.guerra) or not guerra)
+                    ):
                     confini.append(v)
 
         return confini
@@ -218,19 +234,10 @@ class Stato:
             'azione': 'arruola',
             'soldati': soldati
         }
-
-        '''
-        if provincia in self.azioni:
-            for az in self.azioni[provincia]:
-                if az['azione'] == 'arruola':
-                    self.soldi += COSTO_SOLDATO * az['soldati']
-                    az['soldati'] = soldati
-                    self.punti_azioni += 1
-                    return
-            self.azioni[provincia].append(azione)
+        if not provincia in self.azioni:
+            self.azioni[provincia] = [azione]
         else:
-            '''
-        self.azioni[provincia] = [azione]
+            self.azioni[provincia].append(azione)
 
     def aggiungi_spostamento(self, soldati, origine, destinazione):
         percorso = self.trova_percorso(origine, destinazione)
