@@ -88,7 +88,9 @@ class BottoneMuovi(arcade.gui.UIFlatButton):
     def on_event(self, event):
         if (isinstance(event, arcade.gui.UIMousePressEvent) and 
             self.interfaccia.dentro(event.x, event.y, self) and
-            self.interfaccia.provincia_selezionata != None):
+            (self.interfaccia.provincia_selezionata != None or
+            self.interfaccia.province_selezionate != [])
+            ):
                 self.interfaccia.input_muovi_soldati()
 
 class BottoneGuerra(arcade.gui.UIFlatButton):
@@ -105,9 +107,10 @@ class BottoneGuerra(arcade.gui.UIFlatButton):
         if (isinstance(event, arcade.gui.UIMousePressEvent) and
             self.interfaccia.dentro(event.x, event.y, self) and
             self.interfaccia.provincia_selezionata != None and
-            self.interfaccia.provincia_selezionata.stato != self.interfaccia.stato
+            self.interfaccia.provincia_selezionata.stato != self.interfaccia.stato and
+            not self.interfaccia.provincia_selezionata.stato in self.interfaccia.stato.guerra
         ):
-            self.interfaccia.dichiara_guerra(self.interfaccia.provincia_selezionata.stato)
+            self.interfaccia.stato.dichiara_guerra(self.interfaccia.provincia_selezionata.stato)
 
 # Classe che contiene le funzioni principali per la gestione della GUI e alcune funzioni per dare ordini allo Stato del giocatore principale
 class GestoreInterfaccia(arcade.gui.UIManager):
@@ -116,7 +119,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         super().__init__()
 
         self.gioco = gioco
-        self.provincia_precedente = None
+        self.province_precedenti = []
         self.soldati_da_muovere = 0
         self.stato = gioco.stati[0]
         self.prov_da_selezionare = self.stato.elenco_province[0]
@@ -207,12 +210,9 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             y >= widget.position.y
         )
 
-    # ritorna il numero di soldati che sta indicando la barra (prendendo in considerazione le condizioni della provincia, i soldi ecc.)
+    # ritorna il numero di soldati che sta indicando la barra
     def soldati_barra(self, provincia):
-        if self.muovi:
-            return int(self.provincia_precedente.soldati * self.barra.value)
-        if self.arruola:
-            return int(self.barra.value * self.stato.massimo_soldati(provincia))
+        return int(self.barra.value * self.stato.massimo_soldati(provincia))
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, direzione):
@@ -238,32 +238,38 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     
     # rende visible la barra e chiede quanti soldati spostare
     def input_muovi_soldati(self):
-        if (not self.province_multiple and
-            self.provincia_selezionata.stato == self.stato and
-            self.stato.punti_azione != 0 and
-            self.provincia_selezionata.soldati != 0
-            ):
-            if self.barra.value == 0:
-                self.barra.value = 1
-            self.barra.visible = True
-            self.bottone_muovi.visible = False
-            self.bottone_arruola.visible = False
-            self.muovi = True
-            self.provincia_precedente = self.provincia_selezionata
+        province = [self.provincia_selezionata]
+        if self.province_multiple:
+            province = self.province_selezionate.copy()
+        for p in province[:self.stato.punti_azione]:
+            if not (p.stato == self.stato and
+                self.stato.punti_azione > 0 and
+                p.soldati > 0
+                ):
+                    return
+        if self.barra.value == 0:
+            self.barra.value = 1
+        self.barra.visible = True
+        self.bottone_muovi.visible = False
+        self.bottone_arruola.visible = False
+        self.muovi = True
+        self.province_precedenti = province
 
     # chiede allo Stato di aggiungere un'azione per spostare una truppa
     def muovi_esercito(self):
-        soldati = self.soldati_barra(self.provincia_selezionata)
-        if (self.muovi and
-            self.provincia_precedente != self.provincia_selezionata and
-            (self.provincia_selezionata.stato in self.provincia_precedente.stato.guerra or
-            self.provincia_selezionata.stato == self.stato) and
-            soldati != 0
-            ):
-            self.stato.aggiungi_spostamento(soldati, self.provincia_precedente, self.provincia_selezionata)
-            self.stato.renderizza_truppe()
+        if not self.muovi:
+            return
+        for p in self.province_precedenti:
+            soldati = int(self.barra.value * p.soldati)
+            if (p != self.provincia_selezionata and
+                (self.provincia_selezionata.stato in p.stato.guerra or
+                self.provincia_selezionata.stato == self.stato) and
+                soldati != 0
+                ):
+                self.stato.aggiungi_spostamento(soldati, p, self.provincia_selezionata)
+                self.stato.renderizza_truppe()
         self.muovi = False
-        self.provincia_precedente = None
+        self.province_precedenti = []
         self.barra.visible = False
         self.bottone_muovi.visible = True
         self.bottone_arruola.visible = True
@@ -296,6 +302,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
     # chiede allo Stato di aggiungere un'azione per arruolare dei soldati
     def arruola_soldati(self):
+        if not self.arruola:
+            return
         province = [self.provincia_selezionata]
         if self.province_multiple:
             province = self.province_selezionate.copy()
@@ -321,17 +329,3 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.province_multiple = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
-
-    def dichiara_guerra(self, nemico):
-
-        if not nemico in self.stato.guerra:
-            self.stato.guerra[nemico] = {
-                'soldati_morti': 0,
-                'province_conquistate': 0
-            }
-            nemico.guerra[self.stato] = {
-                'soldati_morti': 0,
-                'province_conquistate': 0
-            }
-
-            print('Hai dichiarato guerra a uno stato')

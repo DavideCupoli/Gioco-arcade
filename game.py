@@ -6,6 +6,7 @@ from ui import *
 from oggetti import *
 from costanti import *
 from salvataggio import *
+from bot import *
 
 # ESECUZIONE AZIONI
 
@@ -29,70 +30,6 @@ def esegui_azioni(stato):
                         )
                     )
     stato.azioni = {}
-
-# GESTIONE BOT
-
-# riordina province in base a quante province nemiche confinanti hanno in ordine decrescente
-def riordina_province(province):
-    lista = []
-    for i in range(len(province)):
-        p = province[i]
-        nemiche = 0
-        for v in p.province_vicine().copy():
-            if v != None and v.stato != p.stato:
-                nemiche += 1
-        
-        elemento = {
-            'provincia': p,
-            'nemiche': nemiche
-        }
-
-        if lista == []:
-            lista.append(elemento)
-        else:
-            pos = len(lista)
-            for j in range(len(lista)):
-                if lista[j]['nemiche'] > nemiche:
-                    pos = j
-                    break
-            lista.insert(pos, elemento)
-    province_riordinate = []
-    for e in lista:
-        province_riordinate.append(e['provincia'])
-    return province_riordinate
-
-def gestisci_bot(gioco):
-    if len(gioco.stati) == 1:
-        gioco.turno_stato = 0
-        return
-    while gioco.turno_stato != 0:
-        stato = gioco.stati[gioco.turno_stato]
-        confini = riordina_province(stato.ottieni_confini(False, True))
-        if len(confini) != 0:
-            for provincia in confini:
-                soldati = stato.massimo_soldati(provincia)
-                if soldati > provincia.soldati:
-                    stato.arruola_soldati(soldati, provincia)
-            for p in confini:
-                if p.soldati > 0:
-                    vicine = p.province_vicine()
-                    prov_confinanti = []
-                    for v in vicine:
-                        if v != None and v.stato != stato and v.stato in stato.guerra:
-                            prov_confinanti.append(v)
-                    soldati = p.soldati // len(prov_confinanti)
-                    if soldati > 0:
-                        for c in prov_confinanti:
-                            if stato.punti_azione > 0:
-                                stato.aggiungi_spostamento(soldati, p, c)
-                            else:
-                                break
-
-        if len(stato.elenco_province) == 0:
-            gioco.stati.remove(stato)
-            gioco.turno_stato -= 1
-            gioco.indice_truppe = 0
-        gioco.nuovo_turno(stato)
 
 # CLASSE PRINCIPALE
 
@@ -190,6 +127,14 @@ class GameView(arcade.View):
                     stato.elenco_province[0].y - (WINDOW_HEIGHT / 2))
                 )
 
+    def rimuovi_stato(self, stato):
+        stati = self.stati
+        stati.remove(stato)
+        for s in stati:
+            s.guerra.pop(stato, None)
+        if stato in self.stati:
+            self.stati.remove(stato)
+
     # gli stati si espandono a turno
     def espandi_stati(self):
 
@@ -219,7 +164,7 @@ class GameView(arcade.View):
             for i in range(-2, 2):
                 for j in range(-2, 2):
 
-                    sfondo = self.sfondo[i % 2][j % 2]
+                    sfondo = self.sfondo[j % 2][i % 2]
 
                     arcade.draw_texture_rect(
                         sfondo,
@@ -273,7 +218,7 @@ class GameView(arcade.View):
         y = WINDOW_HEIGHT / 6 * 5
         larghezza = 30
 
-        stati_guerra = list(self.interfaccia.stato.guerra.keys())
+        stati_guerra = list(self.stati[self.indice_truppe].guerra.keys())
 
         for i in range(len(stati_guerra)):
             arcade.draw_lbwh_rectangle_filled(
@@ -311,24 +256,24 @@ class GameView(arcade.View):
             WINDOW_HEIGHT - 100
         )
 
-        arcade.draw_text(
-            f'FPS: {int(self.fps)}',
-            WINDOW_WIDTH - 100,
-            WINDOW_HEIGHT - 50,
-        )
+        if MOSTRA_FPS:
+            arcade.draw_text(
+                f'FPS: {int(self.fps)}',
+                WINDOW_WIDTH - 100,
+                WINDOW_HEIGHT - 50,
+            )
 
         if self.interfaccia.muovi or self.interfaccia.arruola:
             soldati = 0
             if self.interfaccia.province_multiple and self.interfaccia.province_selezionate != []:
                 for p in self.interfaccia.province_selezionate:
                     soldati += self.interfaccia.soldati_barra(p)
-                soldati //= len(self.interfaccia.province_selezionate)
             else:
                 soldati = self.interfaccia.soldati_barra(self.interfaccia.provincia_selezionata)
             
             if self.interfaccia.muovi or self.interfaccia.arruola:
                 arcade.draw_text(
-                    f'Soldati per provincia: {soldati}',
+                    f'Soldati: {soldati}',
                     50,
                     WINDOW_HEIGHT - 150
                 )
@@ -422,7 +367,7 @@ class GameView(arcade.View):
             self.interfaccia.arruola_soldati()
         
         # passare da un turno all'altro
-        if key == arcade.key.SPACE and self.turno_stato == 0:
+        if key == arcade.key.SPACE:
             self.interfaccia.resetta()
 
             self.nuovo_turno(self.interfaccia.stato)
@@ -530,8 +475,8 @@ class GameView(arcade.View):
                 self.interfaccia.provincia_selezionata = self.interfaccia.prov_da_selezionare
                 self.interfaccia.province_selezionate.clear()
                 self.interfaccia.province_multiple = False
-            if self.interfaccia.muovi:
-                self.interfaccia.muovi_esercito()
+                if self.interfaccia.muovi:
+                    self.interfaccia.muovi_esercito()
      
     def on_mouse_release(self, x, y, button, key_modifiers):
         """

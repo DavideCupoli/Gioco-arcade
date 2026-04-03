@@ -104,7 +104,8 @@ class Stato:
                 PRODUZIONE_PER_ABITANTE * p.abitanti - (
                 COSTO_MANTENIMENTO_SOLDATO * p.soldati)
             )
-            p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
+            if p.abitanti * 1.2 < ABITANTI_PER_PROVINCIA:
+                p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
 
     def aggiorna_forma(self):
         
@@ -130,6 +131,7 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         if provincia.stato != None:
             provincia.stato.elenco_province.remove(provincia)
+            provincia.stato.aggiorna_forma()
         provincia.stato = self
         self.elenco_province.append(provincia)
 
@@ -228,7 +230,10 @@ class Stato:
     def arruola_soldati(self, soldati, provincia):
         self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
         provincia.abitanti -= soldati
-        self.punti_azione -= 1
+        if self.punti_azione > 0:
+            self.punti_azione -= 1
+        else:
+            print('PUNTI AZIONE INSUFFICIENTI: ARRUOLA')
 
         azione = {
             'azione': 'arruola',
@@ -258,7 +263,10 @@ class Stato:
             s = spostamenti[i]
             origine = s['percorso'].pop(0)
             destinazione = s['percorso'][0]
-            self.muovi_soldati(s['soldati'], origine, destinazione)
+            if origine.soldati < s['soldati']:
+                self.muovi_soldati(origine.soldati, origine, destinazione)
+            else:
+                self.muovi_soldati(s['soldati'], origine, destinazione)
             if len(s['percorso']) == 1:
                 spostamenti.pop(i)
             else:
@@ -267,7 +275,10 @@ class Stato:
     # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
         origine.soldati -= soldati 
-        self.punti_azione -= 1
+        if self.punti_azione > 0:
+            self.punti_azione -= 1
+        else:
+            print("PUNTI AZIONE INSUFFICIENTI: MUOVI")
         # aggiungi azioni
         azione = {
             'azione': 'muovi',
@@ -302,13 +313,32 @@ class Stato:
                 return self.ricostruisci_percorso(genitori, destinazione)
             for vicino in corrente.province_vicine():
                 if (vicino != None and
-                    not vicino in visitati
+                    not vicino in visitati and
+                    (vicino.stato == self or vicino.stato in self.guerra)
                     ):
                     visitati.add(vicino)
                     genitori[vicino] = corrente
                     coda.append(vicino)
         return []
-         
+    
+    def stati_vicini(self, guerra):
+        stati = []
+        for p in self.ottieni_confini(False, guerra):
+            if not p.stato in stati:
+                stati.append(p.stato)
+        return stati
+
+    def dichiara_guerra(self, nemico):
+
+        self.guerra[nemico] = {
+            'soldati_morti': 0,
+            'province_conquistate': 0
+        }
+        nemico.guerra[self] = {
+            'soldati_morti': 0,
+            'province_conquistate': 0
+        }
+
 class Provincia:
 
     def __init__(self, x, y, raggio, riga, colonna):
