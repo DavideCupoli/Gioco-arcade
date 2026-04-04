@@ -239,7 +239,12 @@ class GameView(arcade.View):
                 2
             )
 
+        self.interfaccia.etichetta_soldi.aggiorna_testo(
+            converti_soldi(self.stati[self.indice_truppe].soldi)
+        )
+
         # disegna il numero dei soldi dello stato selezionato
+        '''
         colore = arcade.color.WHITE
         if self.stati[self.indice_truppe].soldi < 0:
             colore = arcade.color.RED
@@ -255,6 +260,7 @@ class GameView(arcade.View):
             50,
             WINDOW_HEIGHT - 100
         )
+        '''
 
         if MOSTRA_FPS:
             arcade.draw_text(
@@ -265,9 +271,10 @@ class GameView(arcade.View):
 
         if self.interfaccia.muovi or self.interfaccia.arruola:
             soldati = 0
-            if self.interfaccia.province_multiple and self.interfaccia.province_selezionate != []:
-                for p in self.interfaccia.province_selezionate:
+            if self.interfaccia.province_selezionate != []:
+                for p in self.interfaccia.province_selezionate[:self.interfaccia.stato.punti_azione]:
                     soldati += self.interfaccia.soldati_barra(p)
+                soldati = min(int(self.interfaccia.stato.soldi / COSTO_SOLDATO), soldati)
             else:
                 soldati = self.interfaccia.soldati_barra(self.interfaccia.provincia_selezionata)
             
@@ -297,6 +304,12 @@ class GameView(arcade.View):
             
             for i in self.stati:
                 i.aggiorna_forma()
+
+        '''
+        self.interfaccia.etichetta_soldi.aggiorna_testo(
+            converti_soldi(self.stati[self.indice_truppe].soldi)
+        )
+        '''
 
         c = [self.camera.position[0], self.camera.position[1]]
 

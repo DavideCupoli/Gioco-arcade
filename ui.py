@@ -1,21 +1,36 @@
-import arcade
 import arcade.gui
+import math
 from costanti import *
 
 # GESTIONE INTERFACCIA
+
+def converti_soldi(soldi):
+
+    if soldi == 0:
+        return '000'
+    if soldi >= 10**12:
+        return '999+B'
+
+    multipli = 'KMB'
+
+    segno = ''
+
+    if soldi < 0:
+        segno = '-'
+        soldi *= -1
+
+    cifre = int(math.log(soldi, 10))
+
+    if cifre < 3:
+        return f'{segno}{soldi:03d}'
+    else:
+        return f'{segno}{(soldi // (10 ** (cifre - (cifre % 3)))):03d}{multipli[cifre // 3 - 1]}'
 
 # Widget per spostare/arruolare un certo numero di soldati
 class BarraProgressiva(arcade.gui.UIWidget):
     value = arcade.gui.Property(0.0)
 
-    def __init__(
-        self,
-        value,
-        width,
-        height,
-        color,
-        interfaccia
-    ):
+    def __init__(self, value, width, height, color, interfaccia):
         super().__init__(
             width = width,
             height = height,
@@ -54,6 +69,73 @@ class BarraProgressiva(arcade.gui.UIWidget):
             self.content_height,
             self.color,
         )
+
+class Etichetta(arcade.gui.UILabel):
+
+    testo = arcade.gui.Property()
+
+    def __init__(self, width, height, margine, testo, percorso_icona):
+        super().__init__(
+            width = width,
+            height = height,
+            size_hint = None,
+            text=testo,
+            align='right',
+            font_size = 0.8 * height
+        )
+
+        self.icona = arcade.load_texture(percorso_icona)
+        self.testo = testo
+        arcade.gui.bind(self, "testo", self.trigger_render)
+
+        self.margine = margine
+    
+        self._label.x -= margine
+        self._label.y += margine
+
+    def aggiorna_testo(self, t):
+        self.testo = t
+    
+    def do_render(self, surface: arcade.gui.Surface):
+
+        self.prepare_render(surface)
+
+        rect = arcade.LBWH(
+            0,
+            0, 
+            self.content_width,
+            self.content_height
+        )
+
+        arcade.draw_rect_filled(
+            rect,
+            (50, 50, 50)
+        )
+        arcade.draw_rect_outline(
+            rect,
+            arcade.color.WHITE,
+            1
+        )
+        margine = self.content_height * self.margine
+        
+        arcade.draw_texture_rect(
+            self.icona,
+            arcade.LBWH(
+                margine,
+                margine,
+                self.content_height - 2 * margine,
+                self.content_height - 2 * margine
+            )
+        )
+
+        self._label.text = self.testo
+
+        if self._label.text[0] == '-':
+            self._label.color = arcade.color.RED
+        else:
+            self._label.color = arcade.color.WHITE
+
+        self._label.draw()
 
 class BottoneArruola(arcade.gui.UIFlatButton):
     def __init__(self, width, height, text, interfaccia):
@@ -141,6 +223,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
     def setup(self):
 
+        self.etichetta_soldi = Etichetta(
+            180,
+            40,
+            0.1,
+            '000 ',
+            './assets/money.png'
+        )
+
         self.bottone_arruola = BottoneArruola(
             120,
             50,
@@ -170,6 +260,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         )
     
         self.barra.visible = False
+
+        self.layout.add(
+            self.etichetta_soldi,
+            anchor_x='left',
+            anchor_y='top',
+            align_x=50,
+            align_y=-50
+        )
 
         self.layout.add(
             self.bottone_arruola,
@@ -212,7 +310,10 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
     # ritorna il numero di soldati che sta indicando la barra
     def soldati_barra(self, provincia):
-        return int(self.barra.value * self.stato.massimo_soldati(provincia))
+        if self.arruola:
+            return int(self.barra.value * self.stato.massimo_soldati(provincia))
+        if self.muovi:
+            return int(self.barra.value * provincia.soldati)
 
     # cambia la provincia selezionata dall'utente
     def cambia_provincia(self, direzione):

@@ -228,12 +228,14 @@ class Stato:
 
     # aggiunge un'azione per arruolare i soldati
     def arruola_soldati(self, soldati, provincia):
-        self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
-        provincia.abitanti -= soldati
         if self.punti_azione > 0:
             self.punti_azione -= 1
         else:
             print('PUNTI AZIONE INSUFFICIENTI: ARRUOLA')
+            return
+
+        self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
+        provincia.abitanti -= soldati
 
         azione = {
             'azione': 'arruola',
@@ -245,7 +247,7 @@ class Stato:
             self.azioni[provincia].append(azione)
 
     def aggiungi_spostamento(self, soldati, origine, destinazione):
-        percorso = self.trova_percorso(origine, destinazione)
+        percorso = trova_percorso(origine, destinazione)
         if len(percorso) > 2:
             spostamento = {
                 'soldati': soldati,
@@ -274,11 +276,12 @@ class Stato:
         
     # aggiunge un'azione per muovere i soldati
     def muovi_soldati(self, soldati, origine, destinazione):
-        origine.soldati -= soldati 
         if self.punti_azione > 0:
             self.punti_azione -= 1
         else:
             print("PUNTI AZIONE INSUFFICIENTI: MUOVI")
+            return
+        origine.soldati -= soldati 
         # aggiungi azioni
         azione = {
             'azione': 'muovi',
@@ -294,33 +297,6 @@ class Stato:
     def massimo_soldati(self, provincia):
         return int(max(0, min(self.soldi / COSTO_SOLDATO, provincia.abitanti * TASSO_ARRUOLAMENTO)))
 
-    def ricostruisci_percorso(self, genitori, destinazione):
-        percorso = []
-        corrente = destinazione
-        while corrente != None:
-            percorso.insert(0, corrente)
-            corrente = genitori[corrente]
-        return percorso
-
-    def trova_percorso(self, origine, destinazione):
-        coda = [origine]
-        visitati = {origine}
-        genitori = {origine: None}
-        
-        while len(coda) != 0:
-            corrente = coda.pop(0)
-            if corrente == destinazione:
-                return self.ricostruisci_percorso(genitori, destinazione)
-            for vicino in corrente.province_vicine():
-                if (vicino != None and
-                    not vicino in visitati and
-                    (vicino.stato == self or vicino.stato in self.guerra)
-                    ):
-                    visitati.add(vicino)
-                    genitori[vicino] = corrente
-                    coda.append(vicino)
-        return []
-    
     def stati_vicini(self, guerra):
         stati = []
         for p in self.ottieni_confini(False, guerra):

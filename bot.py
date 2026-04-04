@@ -1,4 +1,5 @@
 import random
+from matematica import *
 from costanti import *
 
 # GESTIONE BOT
@@ -52,6 +53,17 @@ def truppe_maggiori(province, numero, confini):
 
     return tm
 
+def provincia_vicina(provincia, province):
+    vicina = province[0]
+    lunghezza = len(trova_percorso(provincia, vicina))
+
+    for p in province[1:]:
+        l = len(trova_percorso(provincia, p))
+        if l < lunghezza:
+            vicina = p
+            lunghezza = l
+    return vicina
+
 def gestisci_bot(gioco):
     if len(gioco.stati) == 1:
         gioco.turno_stato = 0
@@ -86,7 +98,7 @@ def gestisci_bot(gioco):
                 stato.aggiungi_spostamento(
                     t.soldati,
                     t,
-                    confini[min(i, len(confini) - 1)]
+                    provincia_vicina(t, confini)
                 )
 
             for provincia in confini:

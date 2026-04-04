@@ -1,6 +1,6 @@
 import math
 
-# FUNZIONI MATEMATICHE/DI RENDERING
+# FUNZIONI MATEMATICHE/ALGORITMI GENERICI
 
 def distanza(puntoA, puntoB):
     return ((puntoA[0] - puntoB[0]) ** 2 + (puntoA[1] - puntoB[1]) ** 2) ** 0.5
@@ -69,6 +69,33 @@ def intersezione(retta1, retta2):
 
     return (x, y)
 
+def ricostruisci_percorso(genitori, destinazione):
+    percorso = []
+    corrente = destinazione
+    while corrente != None:
+        percorso.insert(0, corrente)
+        corrente = genitori[corrente]
+    return percorso
+
+def trova_percorso(origine, destinazione):
+    coda = [origine]
+    visitati = {origine}
+    genitori = {origine: None}
+    
+    while len(coda) != 0:
+        corrente = coda.pop(0)
+        if corrente == destinazione:
+            return ricostruisci_percorso(genitori, destinazione)
+        for vicino in corrente.province_vicine():
+            if (vicino != None and
+                not vicino in visitati and
+                (vicino.stato == origine.stato or vicino.stato in origine.stato.guerra)
+                ):
+                visitati.add(vicino)
+                genitori[vicino] = corrente
+                coda.append(vicino)
+    return []
+
 class Esagono:
 
     def __init__(self, centro_x, centro_y, raggio):
@@ -109,14 +136,7 @@ class Esagono:
         self.destra.append(self.sopra[0])
 
     def dentro(self, x, y):
-        #if x == 0 and y == 0:
-        #    return True
         r = retta((self.centro_x, self.centro_y), (x, y))
-        if r == 1:
-            return distanza(
-                (x, y),
-                (self.centro_x, self.centro_y)
-            ) < self.raggio
         for i in range(6):
             puntoA = self.punti[i]
             puntoB = self.punti[(i + 1) % 6]
