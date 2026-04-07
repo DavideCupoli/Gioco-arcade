@@ -132,13 +132,11 @@ class GameView(arcade.View):
         stati.remove(stato)
         for s in stati:
             s.guerra.pop(stato, None)
-        if stato in self.stati:
-            self.stati.remove(stato)
 
     # gli stati si espandono a turno
     def espandi_stati(self):
 
-        province = len(self.mappa.province) * self.mappa.num_righe - len(self.stati)
+        province = self.mappa.num_colonne * self.mappa.num_righe - len(self.stati)
         i = 0
         while province > 0:
             p = self.stati[i % len(self.stati)].espandi()
@@ -147,11 +145,6 @@ class GameView(arcade.View):
     
         for i in self.stati:
             i.aggiorna_forma()
-
-    def reset(self):
-        """Reset the game to the initial state."""
-        # Do changes needed to restart the game here if you want to support that
-        pass
 
     # funzione chiamata ad ogni frame per la renderizzazione
     def on_draw(self):
@@ -199,6 +192,24 @@ class GameView(arcade.View):
             self.stati[self.indice_truppe].mostra_truppe()
 
         arcade.draw_lbwh_rectangle_filled(
+            20,
+            110,
+            110,
+            20,
+            (20, 20, 20, 200)
+        )
+
+        arcade.draw_text(
+            'Il tuo stato',
+            20,
+            120,
+            arcade.color.WHITE,
+            font_size=18,
+            align='center',
+            anchor_y='center'
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
             50,
             50,
             50,
@@ -239,28 +250,21 @@ class GameView(arcade.View):
                 2
             )
 
-        self.interfaccia.etichetta_soldi.aggiorna_testo(
-            converti_soldi(self.stati[self.indice_truppe].soldi)
-        )
+            arcade.draw_lbwh_rectangle_filled(
+                x - 140,
+                y + 5,
+                130,
+                20,
+                color=(20,20,20,200)
+            )
 
-        # disegna il numero dei soldi dello stato selezionato
-        '''
-        colore = arcade.color.WHITE
-        if self.stati[self.indice_truppe].soldi < 0:
-            colore = arcade.color.RED
-        arcade.draw_text(
-            f'Soldi: {format(self.stati[self.indice_truppe].soldi, ",")}',
-            50,
-            WINDOW_HEIGHT - 50,
-            color = colore
-        )
-
-        arcade.draw_text(
-            f'Punti azione: {self.interfaccia.stato.punti_azione}',
-            50,
-            WINDOW_HEIGHT - 100
-        )
-        '''
+            arcade.draw_text(
+                'Stati nemici:',
+                x - 130,
+                y + 5,
+                arcade.color.WHITE,
+                font_size=18
+            )
 
         if MOSTRA_FPS:
             arcade.draw_text(
@@ -277,12 +281,32 @@ class GameView(arcade.View):
                 soldati = min(int(self.interfaccia.stato.soldi / COSTO_SOLDATO), soldati)
             else:
                 soldati = self.interfaccia.soldati_barra(self.interfaccia.provincia_selezionata)
-            
+
             if self.interfaccia.muovi or self.interfaccia.arruola:
+
+                x = self.interfaccia.barra.position.x
+                y = self.interfaccia.barra.position.y
+                larghezza = self.interfaccia.barra.width
+                altezza_barra = self.interfaccia.barra.height
+                altezza = 20
+
+                arcade.draw_lbwh_rectangle_filled(
+                    x,
+                    y + altezza_barra + 10,
+                    larghezza,
+                    altezza,
+                    (20, 20, 20, 200)
+                )
+
                 arcade.draw_text(
+
                     f'Soldati: {soldati}',
-                    50,
-                    WINDOW_HEIGHT - 150
+                    x=x,
+                    y=y + altezza_barra + 10 + ((altezza - 2) // 2),
+                    width=larghezza,
+                    font_size=altezza - 2,
+                    align='center',
+                    anchor_y='center'
                 )
 
         self.interfaccia.draw()
@@ -305,11 +329,15 @@ class GameView(arcade.View):
             for i in self.stati:
                 i.aggiorna_forma()
 
-        '''
         self.interfaccia.etichetta_soldi.aggiorna_testo(
             converti_soldi(self.stati[self.indice_truppe].soldi)
         )
-        '''
+        self.interfaccia.etichetta_bilancio.aggiorna_testo(
+            converti_soldi(self.stati[self.indice_truppe].bilancio)
+        )
+        self.interfaccia.etichetta_azioni.aggiorna_testo(
+            str(self.interfaccia.stato.punti_azione)
+        )
 
         c = [self.camera.position[0], self.camera.position[1]]
 
@@ -332,6 +360,7 @@ class GameView(arcade.View):
         self.num_updates += 1
         self.tot_updates += 1
 
+    # lo stato passa al turno successivo
     def nuovo_turno(self, stato):
         esegui_azioni(stato)
         stato.punti_azione = PUNTI_AZIONE
@@ -345,6 +374,7 @@ class GameView(arcade.View):
 
         if key == arcade.key.Z:
             self.loop = not self.loop
+            print(f'Loop: {self.loop}')
 
         if key == arcade.key.I:
             salva_dati(self)
@@ -407,9 +437,9 @@ class GameView(arcade.View):
         if key == arcade.key.E:
             self.interfaccia.cambia_provincia(NORDEST)
         if key == arcade.key.A:
-            self.interfaccia.cambia_provincia(EST)
-        if key == arcade.key.F:
             self.interfaccia.cambia_provincia(OVEST)
+        if key == arcade.key.F:
+            self.interfaccia.cambia_provincia(EST)
         if key == arcade.key.S:
             self.interfaccia.cambia_provincia(SUDOVEST)
         if key == arcade.key.D:
@@ -453,6 +483,7 @@ class GameView(arcade.View):
         if key == arcade.key.LSHIFT:
             self.shift_premuto = False
 
+    # resistuisce la provincia sulla quale si trova il cursore del mouse
     def seleziona_provincia(self, x, y):
 
         pos = self.camera.unproject((x, y))
@@ -460,7 +491,7 @@ class GameView(arcade.View):
         prov = self.mappa.trova_provincia(pos[0], pos[1])
 
         for p in [prov, prov.sudest, prov.sudovest]:
-            if p != None and p.esagono.dentro(pos[0], pos[1]):
+            if p != None and arcade.geometry.is_point_in_polygon(pos[0], pos[1], p.esagono.punti):
                 self.interfaccia.prov_da_selezionare = p
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
@@ -491,12 +522,6 @@ class GameView(arcade.View):
                 if self.interfaccia.muovi:
                     self.interfaccia.muovi_esercito()
      
-    def on_mouse_release(self, x, y, button, key_modifiers):
-        """
-        Called when a user releases a mouse button.
-        """
-        pass
-
 def main():
     """ Main function """
 

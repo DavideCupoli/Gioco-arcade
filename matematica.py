@@ -2,73 +2,7 @@ import math
 
 # FUNZIONI MATEMATICHE/ALGORITMI GENERICI
 
-def distanza(puntoA, puntoB):
-    return ((puntoA[0] - puntoB[0]) ** 2 + (puntoA[1] - puntoB[1]) ** 2) ** 0.5
-
-'''
-def funzione(m, q):
-    return {
-        'verticale': False,
-        'pendenza': m,
-        'intercetta': q
-    }
-'''
-
-def retta(puntoA, puntoB):
-    x1 = puntoA[0]
-    y1 = puntoA[1]
-    x2 = puntoB[0]
-    y2 = puntoB[1]
-    if x1 == x2:
-        # verticale
-        return {
-            'verticale': True,
-            'x': x1
-        }
-    pendenza = (y2 - y1) / (x2 - x1)
-    return {
-        'verticale': False,
-        'pendenza': pendenza,
-        'intercetta': y1 - (x1 * pendenza)
-    }
-
-def intersezione(retta1, retta2):
-    if (retta1['verticale'] and retta2['verticale'] and
-        retta1['x'] == retta2['x']):
-        # indeterminato
-        return 0
-    if (retta1['verticale'] and retta2['verticale'] and
-        retta1['x'] != retta2['x']):
-        # impossibile
-        return 1
-    if not retta1['verticale'] and not retta2['verticale']:
-        if (retta1['pendenza'] == retta2['pendenza'] and
-            retta1['intercetta'] == retta2['intercetta']):
-            print('Indeterminato')
-            return 0
-        elif (retta1['pendenza'] == retta2['pendenza'] and
-             retta1['intercetta'] != retta2['intercetta']):
-            print('Impossibile')
-            return 1
-    
-    x = 0
-    if retta1['verticale']:
-        x = retta1['x']
-        y = x * retta2['pendenza'] + retta2['intercetta']
-    elif retta2['verticale']:
-        x = retta2['x']
-        y = x * retta1['pendenza'] + retta1['intercetta']
-    else:
-        x = -1 * (
-            retta1['intercetta'] - retta2['intercetta']
-        ) / (
-            retta1['pendenza'] - retta2['pendenza']
-        )
-    
-        y = x * retta1['pendenza'] + retta1['intercetta']
-
-    return (x, y)
-
+# ricostruisce il percorso a partire dalla destinazione
 def ricostruisci_percorso(genitori, destinazione):
     percorso = []
     corrente = destinazione
@@ -77,6 +11,7 @@ def ricostruisci_percorso(genitori, destinazione):
         corrente = genitori[corrente]
     return percorso
 
+# restituisce il percorso più breve tra due province
 def trova_percorso(origine, destinazione):
     coda = [origine]
     visitati = {origine}
@@ -111,6 +46,7 @@ class Esagono:
 
         self.crea_vertici()
 
+    # crea i vertici dell'esagono
     def crea_vertici(self):
 
         gradi = 90 - (360 / 6)
@@ -134,23 +70,3 @@ class Esagono:
 
         self.destra.append(self.sotto[-1])
         self.destra.append(self.sopra[0])
-
-    def dentro(self, x, y):
-        r = retta((self.centro_x, self.centro_y), (x, y))
-        for i in range(6):
-            puntoA = self.punti[i]
-            puntoB = self.punti[(i + 1) % 6]
-            lato = retta(puntoA, puntoB)
-            inter = intersezione(r, lato)
-            if inter != 0 and inter != 1:
-                d = distanza(
-                    inter,
-                    (self.centro_x, self.centro_y)
-                )
-                if (d < self.raggio and
-                    d > distanza(
-                        (x, y),
-                        (self.centro_x, self.centro_y)
-                    )):
-                    return True
-        return False

@@ -11,7 +11,7 @@ def riordina_province(province):
         p = province[i]
         nemiche = 0
         for v in p.province_vicine().copy():
-            if v != None and v.stato != p.stato:
+            if v != None and v.stato != p.stato and v.stato in p.stato.guerra:
                 nemiche += 1
         
         elemento = {
@@ -33,6 +33,7 @@ def riordina_province(province):
         province_riordinate.append(e['provincia'])
     return province_riordinate
 
+# resistuisce le n truppe con il numero maggiore di soldati, in ordine crescente
 def truppe_maggiori(province, numero, confini):
 
     tm = [None] * numero
@@ -53,6 +54,7 @@ def truppe_maggiori(province, numero, confini):
 
     return tm
 
+# trova la provincia più vicina
 def provincia_vicina(provincia, province):
     vicina = province[0]
     lunghezza = len(trova_percorso(provincia, vicina))
@@ -64,6 +66,18 @@ def provincia_vicina(provincia, province):
             lunghezza = l
     return vicina
 
+# il bot arruola quanti pù soldati può nelle province dove ce ne sono pochi, finché non finiscono i punti azione
+def arruola_soldati(stato, province, p2):
+    p = []
+    for provincia in province:
+        if not provincia in p2:
+            soldati = stato.massimo_soldati(provincia)
+            if soldati > provincia.soldati and stato.punti_azione > 0:
+                stato.arruola_soldati(soldati, provincia)
+                p.append(provincia)
+    return p
+
+# algoritmo del bot
 def gestisci_bot(gioco):
     if len(gioco.stati) == 1:
         gioco.turno_stato = 0
@@ -101,10 +115,7 @@ def gestisci_bot(gioco):
                     provincia_vicina(t, confini)
                 )
 
-            for provincia in confini:
-                soldati = stato.massimo_soldati(provincia)
-                if soldati > provincia.soldati and stato.punti_azione > 0:
-                    stato.arruola_soldati(soldati, provincia)
+            province = arruola_soldati(stato, confini, [])
             for p in confini:
                 if p.soldati > 0:
                     vicine = p.province_vicine()
@@ -119,8 +130,10 @@ def gestisci_bot(gioco):
                                 stato.aggiungi_spostamento(soldati, p, c)
                             else:
                                 break
-        
+            arruola_soldati(stato, confini, province)
+
         if gioco.interfaccia.stato in stato.guerra and len(gioco.interfaccia.stato.elenco_province) == 0:
             stato.guerra.pop(gioco.interfaccia.stato, None)
+            gioco.interfaccia.stato.guerra.pop(stato, None)
 
         gioco.nuovo_turno(stato)

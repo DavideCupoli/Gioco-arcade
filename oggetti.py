@@ -77,6 +77,9 @@ class Stato:
         '''
         self.guerra = {}
 
+        self.bilancio = 0
+
+    # carica i dati dal dizionario dati, ricavato dal file json
     def carica_dati(self, dati, mappa):
         
         self.elenco_province = []
@@ -94,19 +97,32 @@ class Stato:
         self.punti_azione = dati['punti_azione']
         self.spostamenti_truppe = dati['spostamenti_truppe']
         self.azioni = dati['azioni']
+        self.guerra = dati['guerra']
 
         self.aggiorna_forma()
 
     # aggiorna le condizioni dello Stato, includendo le risorse (es. soldi)
     def aggiorna_statistiche(self):
+        abitanti = 0
+        soldati = 0
         for p in self.elenco_province:
-            self.soldi += int(
-                PRODUZIONE_PER_ABITANTE * p.abitanti - (
-                COSTO_MANTENIMENTO_SOLDATO * p.soldati)
-            )
+            abitanti += p.abitanti
+            soldati += p.soldati
             if p.abitanti * 1.2 < ABITANTI_PER_PROVINCIA:
                 p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
+        for p in self.azioni.keys():
+            for azione in self.azioni[p]:
+                if azione['azione'] == 'muovi':
+                    soldati += azione['soldati']
 
+        self.bilancio = int(
+            PRODUZIONE_PER_ABITANTE * abitanti -
+            COSTO_MANTENIMENTO_SOLDATO * soldati
+        )
+
+        self.soldi += self.bilancio
+
+    # aggiorna la forma dello Stato per una renderizzazione corretta
     def aggiorna_forma(self):
         
         self.forma.clear()
@@ -163,11 +179,13 @@ class Stato:
 
         self.forma.draw()
 
+    # disegna le truppe
     def mostra_truppe(self):
         if self.batch != None:
             self.forma_truppe.draw()           
             self.batch.draw()
 
+    # renderizza gli indicatori delle truppe
     def renderizza_truppe(self):
 
         self.forma_truppe.clear()
@@ -245,7 +263,7 @@ class Stato:
             self.azioni[provincia] = [azione]
         else:
             self.azioni[provincia].append(azione)
-
+ 
     def aggiungi_spostamento(self, soldati, origine, destinazione):
         percorso = trova_percorso(origine, destinazione)
         if len(percorso) > 2:
@@ -259,6 +277,7 @@ class Stato:
         elif len(percorso) == 2:
             self.muovi_soldati(soldati, origine, destinazione)    
 
+    # da uno spostamento lungo (più di due province) fa una serie di spostamenti brevi (2 province)
     def aggiungi_azioni_spostamenti(self, spostamenti):
         i = 0
         while i < len(spostamenti):
@@ -308,11 +327,11 @@ class Stato:
 
         self.guerra[nemico] = {
             'soldati_morti': 0,
-            'province_conquistate': 0
+            'province_conquistate': []
         }
         nemico.guerra[self] = {
             'soldati_morti': 0,
-            'province_conquistate': 0
+            'province_conquistate': []
         }
 
 class Provincia:
@@ -397,12 +416,12 @@ class Mappa:
         len_fila = len(self.province[0])
         for i in range(0, len(self.province)):
             for j in range(0, len_fila):
-                # est
-                if j - 1 >= 0:
-                    self.province[i][j].est = self.province[i][j - 1]
                 # ovest
+                if j - 1 >= 0:
+                    self.province[i][j].ovest = self.province[i][j - 1]
+                # est
                 if j + 1 < len_fila:
-                    self.province[i][j].ovest = self.province[i][j + 1]
+                    self.province[i][j].est = self.province[i][j + 1]
                 # sudest
                 if i - 1 >= 0 and i % 2 == 0:
                     self.province[i][j].sudest = self.province[i - 1][j]
@@ -424,6 +443,7 @@ class Mappa:
                 if i + 1 < len(self.province) and i % 2 != 0:
                     self.province[i][j].nordovest = self.province[i + 1][j]
 
+    # trova la provincia individuata dal punto (x, y)
     def trova_provincia(self, x, y):
         inizio_x = self.province[0][0].x
         inizio_y = self.province[0][0].y

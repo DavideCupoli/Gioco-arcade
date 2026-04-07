@@ -4,6 +4,7 @@ from costanti import *
 
 # GESTIONE INTERFACCIA
 
+# converte un numero in stringa con 3 cifre e una lettera che indica il multiplo
 def converti_soldi(soldi):
 
     if soldi == 0:
@@ -30,7 +31,7 @@ def converti_soldi(soldi):
 class BarraProgressiva(arcade.gui.UIWidget):
     value = arcade.gui.Property(0.0)
 
-    def __init__(self, value, width, height, color, interfaccia):
+    def __init__(self, value, width, height, interfaccia):
         super().__init__(
             width = width,
             height = height,
@@ -40,7 +41,6 @@ class BarraProgressiva(arcade.gui.UIWidget):
         self.with_border(color=arcade.uicolor.GRAY_CONCRETE)
 
         self.value = value
-        self.color = color
         self.interfaccia = interfaccia
 
         # trigger a render when the value changes
@@ -61,13 +61,19 @@ class BarraProgressiva(arcade.gui.UIWidget):
         # so that 0,0 is the bottom left corner of the widget content
         self.prepare_render(surface)
 
+        colore = (255, 255, 0)
+        if self.value < 0.5:
+            colore = (int(255 * self.value * 2), 255, 0)
+        elif self.value > 0.5:
+            colore = (255, 255 * (1 - (self.value - 0.5) * 2), 0)
+
         # Draw the actual bar
         arcade.draw_lbwh_rectangle_filled(
             0,
             0,
             self.content_width * self.value,
             self.content_height,
-            self.color,
+            colore,
         )
 
 class Etichetta(arcade.gui.UILabel):
@@ -90,9 +96,6 @@ class Etichetta(arcade.gui.UILabel):
 
         self.margine = margine
     
-        self._label.x -= margine
-        self._label.y += margine
-
     def aggiorna_testo(self, t):
         self.testo = t
     
@@ -109,11 +112,11 @@ class Etichetta(arcade.gui.UILabel):
 
         arcade.draw_rect_filled(
             rect,
-            (50, 50, 50)
+            (230, 230, 230)
         )
         arcade.draw_rect_outline(
             rect,
-            arcade.color.WHITE,
+            arcade.color.BLACK,
             1
         )
         margine = self.content_height * self.margine
@@ -133,7 +136,10 @@ class Etichetta(arcade.gui.UILabel):
         if self._label.text[0] == '-':
             self._label.color = arcade.color.RED
         else:
-            self._label.color = arcade.color.WHITE
+            self._label.color = arcade.color.BLACK
+
+        self._label.x = -margine
+        self._label.y = margine
 
         self._label.draw()
 
@@ -221,14 +227,31 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
         self.setup()
 
+    # vengono impostati tutti i componenti grafici della GUI
     def setup(self):
 
         self.etichetta_soldi = Etichetta(
-            180,
+            150,
             40,
             0.1,
             '000 ',
             './assets/money.png'
+        )
+
+        self.etichetta_bilancio = Etichetta(
+            150,
+            40,
+            0.1,
+            '000 ',
+            './assets/budget.png'
+        )
+
+        self.etichetta_azioni = Etichetta(
+            150,
+            40,
+            0.1,
+            str(PUNTI_AZIONE),
+            './assets/action.png'
         )
 
         self.bottone_arruola = BottoneArruola(
@@ -255,7 +278,6 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             0.5,
             400,
             30,
-            arcade.color.RED,
             self
         )
     
@@ -265,8 +287,24 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             self.etichetta_soldi,
             anchor_x='left',
             anchor_y='top',
-            align_x=50,
-            align_y=-50
+            align_x=30,
+            align_y=-30
+        )
+
+        self.layout.add(
+            self.etichetta_bilancio,
+            anchor_x='left',
+            anchor_y='top',
+            align_x=30,
+            align_y=-30-40-20
+        )
+
+        self.layout.add(
+            self.etichetta_azioni,
+            anchor_x='left',
+            anchor_y='top',
+            align_x=30,
+            align_y=-30-40-20-40-20
         )
 
         self.layout.add(
@@ -300,6 +338,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             align_y=20
         )
 
+    # verifica che il punto (x, y) sia dentro il widget
     def dentro(self, x, y, widget):
         return (
             x <= (widget.width + widget.position.x) and
@@ -360,7 +399,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
     def muovi_esercito(self):
         if not self.muovi:
             return
-        for p in self.province_precedenti:
+        for p in self.province_precedenti[:self.stato.punti_azione]:
             soldati = int(self.barra.value * p.soldati)
             if (p != self.provincia_selezionata and
                 (self.provincia_selezionata.stato in p.stato.guerra or
@@ -421,6 +460,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.province_multiple = False
         self.province_selezionate.clear()
 
+    # resetta tutte le impostazioni della GUI
     def resetta(self):
         self.barra.visible = False
         self.arruola = False
