@@ -143,7 +143,7 @@ def salva_dati(gioco):
 
         stato = {
             'elenco_province': province,
-            'guerra': converti_guerra(s.guerra, gioco.stati),
+            'guerra': converti_guerra(s.guerra),
             'colore': s.colore,
             'soldi': s.soldi,
             'punti_azione': s.punti_azione,

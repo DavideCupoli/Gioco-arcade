@@ -136,16 +136,21 @@ class GameView(arcade.View):
     # gli stati si espandono a turno
     def espandi_stati(self):
 
+        confini = {}
+        for s in self.stati:
+            confini[s] = s.elenco_province.copy()
+
         province = self.mappa.num_colonne * self.mappa.num_righe - len(self.stati)
         i = 0
         while province > 0:
-            p = self.stati[i % len(self.stati)].espandi()
+            stato = self.stati[i % len(self.stati)]
+            p = stato.espandi(confini[stato])
             province -= p
             i += 1
     
         for i in self.stati:
             i.aggiorna_forma()
-
+       
     # funzione chiamata ad ogni frame per la renderizzazione
     def on_draw(self):
     

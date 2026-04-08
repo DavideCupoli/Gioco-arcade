@@ -152,26 +152,61 @@ class Stato:
         self.elenco_province.append(provincia)
 
     # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
-    def espandi(self):
+    '''
+    def espandi(self, confini=None):
 
         province_aggiunte = 0
         massimo_province = 6
-        prov_da_scegliere = self.elenco_province.copy()
+        prov_da_scegliere = confini.copy()
         while len(prov_da_scegliere) > 0:
             p = random.choice(prov_da_scegliere)
             vicine = p.province_vicine()
 
-            while len(vicine) > 0:
-                v = random.choice(vicine)
+            interna = True
+            for v in vicine:
                 if v != None and v.stato == None:
                     self.aggiungi_provincia(v)
                     province_aggiunte += 1
+                if v != None and v.stato != self.stato:
+                    interna = False
                 if province_aggiunte == massimo_province:
                     return massimo_province
-                vicine.remove(v)
+            if interna:
+                confini.remove()
 
             prov_da_scegliere.remove(p)
 
+        return province_aggiunte
+    '''
+
+    def espandi(self, confini):
+        massimo_province = 6
+
+        province_da_scegliere = confini.copy()
+        p = None
+        province_aggiunte = 0
+        while province_da_scegliere != []:
+            p = random.choice(province_da_scegliere)
+            
+            interno = True
+            for v in p.province_vicine():
+                if v != None and v.stato == None:
+                    self.aggiungi_provincia(v)
+                    province_aggiunte += 1
+                    confini.append(v)
+                elif (v != None and
+                    v.stato != self and
+                    v.stato != None
+                ):
+                    interno = False
+                
+                if province_aggiunte == massimo_province:
+                    return massimo_province
+            if interno:
+                confini.remove(p)
+
+            province_da_scegliere.remove(p)
+        
         return province_aggiunte
 
     # viene renderizzato lo Stato. Se truppe è True, vengono mostrate anche le truppe

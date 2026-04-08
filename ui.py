@@ -143,7 +143,7 @@ class Etichetta(arcade.gui.UILabel):
 
         self._label.draw()
 
-class BottoneArruola(arcade.gui.UIFlatButton):
+class Bottone(arcade.gui.UIFlatButton):
     def __init__(self, width, height, text, interfaccia):
         super().__init__(
             width = width,
@@ -152,6 +152,9 @@ class BottoneArruola(arcade.gui.UIFlatButton):
             size_hint = None
         )
         self.interfaccia = interfaccia
+    
+    def azione(self):
+        pass
 
     # rende visible la barra e chiede quanti soldati spostare
     def on_event(self, event):
@@ -160,42 +163,28 @@ class BottoneArruola(arcade.gui.UIFlatButton):
             (self.interfaccia.provincia_selezionata != None or
             self.interfaccia.province_selezionate != [])
             ):
-                self.interfaccia.input_arruola_soldati()
+                self.azione()
 
-class BottoneMuovi(arcade.gui.UIFlatButton):
+class BottoneArruola(Bottone):
     def __init__(self, width, height, text, interfaccia):
-        super().__init__(
-            width = width,
-            height = height,
-            text = text,
-            size_hint = None
-        )
-        self.interfaccia = interfaccia
+        super().__init__(width, height, text, interfaccia)
 
-    # rende visible la barra e chiede quanti soldati spostare
-    def on_event(self, event):
-        if (isinstance(event, arcade.gui.UIMousePressEvent) and 
-            self.interfaccia.dentro(event.x, event.y, self) and
-            (self.interfaccia.provincia_selezionata != None or
-            self.interfaccia.province_selezionate != [])
-            ):
-                self.interfaccia.input_muovi_soldati()
+    def azione(self):
+        self.interfaccia.input_arruola_soldati()
 
-class BottoneGuerra(arcade.gui.UIFlatButton):
+class BottoneMuovi(Bottone):
     def __init__(self, width, height, text, interfaccia):
-        super().__init__(
-            width = width,
-            height = height,
-            text = text,
-            size_hint = None
-        )
-        self.interfaccia = interfaccia
+        super().__init__(width, height, text, interfaccia)
 
-    def on_event(self, event):
-        if (isinstance(event, arcade.gui.UIMousePressEvent) and
-            self.interfaccia.dentro(event.x, event.y, self) and
-            self.interfaccia.provincia_selezionata != None and
-            self.interfaccia.provincia_selezionata.stato != self.interfaccia.stato and
+    def azione(self):
+        self.interfaccia.input_muovi_soldati()
+
+class BottoneGuerra(Bottone):
+    def __init__(self, width, height, text, interfaccia):
+        super().__init__(width, height, text, interfaccia)
+    
+    def azione(self):
+        if (self.interfaccia.provincia_selezionata.stato != self.interfaccia.stato and
             not self.interfaccia.provincia_selezionata.stato in self.interfaccia.stato.guerra
         ):
             self.interfaccia.stato.dichiara_guerra(self.interfaccia.provincia_selezionata.stato)
