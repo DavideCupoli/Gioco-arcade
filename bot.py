@@ -67,7 +67,7 @@ def provincia_vicina(provincia, province):
     return vicina
 
 # il bot arruola quanti pù soldati può nelle province dove ce ne sono pochi, finché non finiscono i punti azione
-def arruola_soldati(stato, province, p2):
+def arruola_soldati(stato, province, p2=[]):
     p = []
     for provincia in province:
         if not provincia in p2:
@@ -76,6 +76,54 @@ def arruola_soldati(stato, province, p2):
                 stato.arruola_soldati(soldati, provincia)
                 p.append(provincia)
     return p
+
+# muove i soldati lungo il confine dello Stato
+def muovi_soldati_confine(stato, confini):
+    for p in confini:
+        if p.soldati > 0:
+            vicine = p.province_vicine()
+            prov_confinanti = []
+            for v in vicine:
+                if v != None and v.stato != stato and v.stato in stato.guerra:
+                    prov_confinanti.append(v)
+            soldati = p.soldati // len(prov_confinanti)
+            if soldati > 0:
+                for c in prov_confinanti:
+                    if stato.punti_azione > 0:
+                        stato.aggiungi_spostamento(soldati, p, c)
+                    else:
+                        break
+
+# muove i soldati interni verso il confine dello Stato
+def muovi_soldati_interni(stato, confini):
+    if len(confini) != 0:
+
+        for i, t in enumerate(
+            truppe_maggiori(
+                stato.elenco_province,
+                3 - (PUNTI_AZIONE - stato.punti_azione),
+                confini
+            )
+        ):
+            stato.aggiungi_spostamento(
+                t.soldati,
+                t,
+                provincia_vicina(t, confini)
+            )
+
+# dichiara guerra a uno Stato casuale in momenti casuali
+def dichiara_guerra(gioco, stato):
+    if (random.random() < 1/100 and
+        stato.guerra == {} and
+        len(gioco.stati) > 2):
+        stati_vicini = stato.stati_vicini(False)
+        indice = random.randint(0, len(stati_vicini) - 1)
+        stato.dichiara_guerra(stati_vicini[indice])
+
+def sciogli(stato):
+    for p in stato.elenco_province:
+        if p.soldati > 0:
+            stato.sciogli_soldati(p.soldati, p)
 
 # algoritmo del bot
 def gestisci_bot(gioco):
@@ -91,46 +139,19 @@ def gestisci_bot(gioco):
             gioco.indice_truppe = 0
             gioco.nuovo_turno(stato)
             return
+        
+        if stato.guerra == {}:
+            sciogli(stato)
 
-        if (random.random() < 1/100 and
-            stato.guerra == {} and
-            len(gioco.stati) > 2):
-            stati_vicini = stato.stati_vicini(False)
-            indice = random.randint(0, len(stati_vicini) - 1)
-            stato.dichiara_guerra(stati_vicini[indice])
+        dichiara_guerra(gioco, stato)
 
         confini = riordina_province(stato.ottieni_confini(True, True))
-        if len(confini) != 0:
 
-            for i, t in enumerate(
-                truppe_maggiori(
-                    stato.elenco_province,
-                    3 - (PUNTI_AZIONE - stato.punti_azione),
-                    confini
-                )
-            ):
-                stato.aggiungi_spostamento(
-                    t.soldati,
-                    t,
-                    provincia_vicina(t, confini)
-                )
+        muovi_soldati_interni(stato, confini)
 
-            province = arruola_soldati(stato, confini, [])
-            for p in confini:
-                if p.soldati > 0:
-                    vicine = p.province_vicine()
-                    prov_confinanti = []
-                    for v in vicine:
-                        if v != None and v.stato != stato and v.stato in stato.guerra:
-                            prov_confinanti.append(v)
-                    soldati = p.soldati // len(prov_confinanti)
-                    if soldati > 0:
-                        for c in prov_confinanti:
-                            if stato.punti_azione > 0:
-                                stato.aggiungi_spostamento(soldati, p, c)
-                            else:
-                                break
-            arruola_soldati(stato, confini, province)
+        province = arruola_soldati(stato, confini)
+        muovi_soldati_confine(stato, confini)
+        arruola_soldati(stato, confini, province)
 
         if gioco.interfaccia.stato in stato.guerra and len(gioco.interfaccia.stato.elenco_province) == 0:
             stato.guerra.pop(gioco.interfaccia.stato, None)

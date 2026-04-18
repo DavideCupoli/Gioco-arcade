@@ -16,6 +16,7 @@ def esegui_azioni(stato):
         for azione in azioni:
             if azione['azione'] == 'arruola':
                 p.soldati += azione['soldati']
+                p.abitanti -= azione['soldati']
             if azione['azione'] == 'muovi':
                 destinazione = azione['destinazione']
                 soldati = azione['soldati']
@@ -131,7 +132,10 @@ class GameView(arcade.View):
         stati = self.stati
         stati.remove(stato)
         for s in stati:
-            s.guerra.pop(stato, None)
+            if stato in s.guerra:
+                s.guerra.pop(stato)
+                for p in s.elenco_province:
+                    p.invasa = False
 
     # gli stati si espandono a turno
     def espandi_stati(self):
@@ -278,7 +282,10 @@ class GameView(arcade.View):
                 WINDOW_HEIGHT - 50,
             )
 
-        if self.interfaccia.muovi or self.interfaccia.arruola:
+        if (self.interfaccia.muovi or
+            self.interfaccia.arruola or
+            self.interfaccia.sciogli
+            ):
             soldati = 0
             if self.interfaccia.province_selezionate != []:
                 for p in self.interfaccia.province_selezionate[:self.interfaccia.stato.punti_azione]:
@@ -287,32 +294,30 @@ class GameView(arcade.View):
             else:
                 soldati = self.interfaccia.soldati_barra(self.interfaccia.provincia_selezionata)
 
-            if self.interfaccia.muovi or self.interfaccia.arruola:
+            x = self.interfaccia.barra.position.x
+            y = self.interfaccia.barra.position.y
+            larghezza = self.interfaccia.barra.width
+            altezza_barra = self.interfaccia.barra.height
+            altezza = 20
 
-                x = self.interfaccia.barra.position.x
-                y = self.interfaccia.barra.position.y
-                larghezza = self.interfaccia.barra.width
-                altezza_barra = self.interfaccia.barra.height
-                altezza = 20
+            arcade.draw_lbwh_rectangle_filled(
+                x,
+                y + altezza_barra + 10,
+                larghezza,
+                altezza,
+                (20, 20, 20, 200)
+            )
 
-                arcade.draw_lbwh_rectangle_filled(
-                    x,
-                    y + altezza_barra + 10,
-                    larghezza,
-                    altezza,
-                    (20, 20, 20, 200)
-                )
+            arcade.draw_text(
 
-                arcade.draw_text(
-
-                    f'Soldati: {soldati}',
-                    x=x,
-                    y=y + altezza_barra + 10 + ((altezza - 2) // 2),
-                    width=larghezza,
-                    font_size=altezza - 2,
-                    align='center',
-                    anchor_y='center'
-                )
+                f'Soldati: {soldati}',
+                x=x,
+                y=y + altezza_barra + 10 + ((altezza - 2) // 2),
+                width=larghezza,
+                font_size=altezza - 2,
+                align='center',
+                anchor_y='center'
+            )
 
         self.interfaccia.draw()
 
@@ -413,6 +418,7 @@ class GameView(arcade.View):
                 self.interfaccia.input_arruola_soldati()
         if key == arcade.key.ENTER:
             self.interfaccia.arruola_soldati()
+            self.interfaccia.sciogli_soldati()
         
         # passare da un turno all'altro
         if key == arcade.key.SPACE:
@@ -513,6 +519,7 @@ class GameView(arcade.View):
         if (not self.interfaccia.arruola and
             not self.interfaccia.dentro(x, y, self.interfaccia.bottone_muovi) and
             not self.interfaccia.dentro(x, y, self.interfaccia.bottone_arruola) and
+            not self.interfaccia.dentro(x, y, self.interfaccia.bottone_sciogli) and
             not self.interfaccia.dentro(x, y, self.interfaccia.barra)
             ):
             if self.shift_premuto:

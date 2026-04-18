@@ -189,6 +189,27 @@ class BottoneGuerra(Bottone):
         ):
             self.interfaccia.stato.dichiara_guerra(self.interfaccia.provincia_selezionata.stato)
 
+class BottoneSciogli(Bottone):
+    def __init__(self, width, height, text, interfaccia):
+        super().__init__(width, height, text, interfaccia)
+    
+    def azione(self):
+        ui = self.interfaccia
+        province = [ui.provincia_selezionata]
+        if ui.province_multiple:
+            province = ui.province_selezionate.copy()     
+        for p in province:
+            if p.stato != ui.stato or p.soldati < 0:
+                return
+
+        ui.sciogli = True
+        if ui.barra.value == 0:
+            ui.barra.value = 1
+        ui.barra.visible = True
+        ui.bottone_muovi.visible = False
+        ui.bottone_arruola.visible = False
+        ui.bottone_guerra.visible = False
+
 # Classe che contiene le funzioni principali per la gestione della GUI e alcune funzioni per dare ordini allo Stato del giocatore principale
 class GestoreInterfaccia(arcade.gui.UIManager):
 
@@ -205,6 +226,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
 
         self.muovi = False
         self.arruola = False
+        self.sciogli = False
 
         self.layout = self.add(arcade.gui.UIAnchorLayout())
 
@@ -260,6 +282,13 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             120,
             50,
             'Dichiara guerra',
+            self
+        )
+
+        self.bottone_sciogli = BottoneSciogli(
+            120,
+            50,
+            'Sciogli',
             self
         )
 
@@ -321,6 +350,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         )
 
         self.layout.add(
+            self.bottone_sciogli,
+            anchor_x='right',
+            anchor_y='bottom',
+            align_x=-10,
+            align_y=190
+        )
+
+        self.layout.add(
             self.barra,
             anchor_x='center',
             anchor_y='bottom',
@@ -341,6 +378,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         if self.arruola:
             return int(self.barra.value * self.stato.massimo_soldati(provincia))
         if self.muovi:
+            return int(self.barra.value * provincia.soldati)
+        if self.sciogli:
             return int(self.barra.value * provincia.soldati)
 
     # cambia la provincia selezionata dall'utente
@@ -381,6 +420,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.barra.visible = True
         self.bottone_muovi.visible = False
         self.bottone_arruola.visible = False
+        self.bottone_guerra.visible = False
+        self.bottone_sciogli.visible = False
         self.muovi = True
         self.province_precedenti = province
 
@@ -396,12 +437,14 @@ class GestoreInterfaccia(arcade.gui.UIManager):
                 soldati != 0
                 ):
                 self.stato.aggiungi_spostamento(soldati, p, self.provincia_selezionata)
-                self.stato.renderizza_truppe()
+        self.stato.renderizza_truppe()
         self.muovi = False
         self.province_precedenti = []
         self.barra.visible = False
         self.bottone_muovi.visible = True
         self.bottone_arruola.visible = True
+        self.bottone_guerra.visible = True
+        self.bottone_sciogli.visible = True
 
     # rende visibile la barra e chiede quanti soldati arruolare
     def input_arruola_soldati(self):
@@ -416,7 +459,6 @@ class GestoreInterfaccia(arcade.gui.UIManager):
                 for az in self.stato.azioni[p]:
                     if az['azione'] == 'arruola':
                         azione = az
-                        p.abitanti += az['soldati']
                         break
                 if azione != None:
                     self.stato.punti_azione += 1
@@ -428,6 +470,8 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.arruola = True
         self.bottone_muovi.visible = False
         self.bottone_arruola.visible = False
+        self.bottone_guerra.visible = False
+        self.bottone_sciogli.visible = False
 
     # chiede allo Stato di aggiungere un'azione per arruolare dei soldati
     def arruola_soldati(self):
@@ -438,13 +482,35 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             province = self.province_selezionate.copy()
         for p in province:
             soldati = self.soldati_barra(p)
-            if self.arruola and soldati != 0 and self.stato.punti_azione > 0:
+            if soldati != 0 and self.stato.punti_azione > 0:
                 self.stato.arruola_soldati(soldati, p)
         self.stato.renderizza_truppe()
         self.arruola = False
         self.barra.visible = False
         self.bottone_arruola.visible = True
         self.bottone_muovi.visible = True
+        self.bottone_guerra.visible = True
+        self.bottone_sciogli.visible = True
+
+        self.province_multiple = False
+        self.province_selezionate.clear()
+    
+    def sciogli_soldati(self):
+        if not self.sciogli:
+            return
+        province = [self.provincia_selezionata]
+        if self.province_multiple:
+            province = self.province_selezionate.copy()
+        for p in province:
+            soldati = self.soldati_barra(p)
+            if soldati <= p.soldati:
+                self.stato.sciogli_soldati(soldati, p)
+        self.stato.renderizza_truppe()
+        self.sciogli = False
+        self.barra.visible = False
+        self.bottone_arruola.visible = True
+        self.bottone_muovi.visible = True
+        self.bottone_guerra.visible = True
 
         self.province_multiple = False
         self.province_selezionate.clear()
@@ -454,6 +520,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.barra.visible = False
         self.arruola = False
         self.muovi = False
+        self.sciogli = False
         self.provincia_selezionata = None
         self.province_selezionate.clear()
         self.province_multiple = False

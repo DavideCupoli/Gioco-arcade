@@ -108,7 +108,7 @@ class Stato:
         for p in self.elenco_province:
             abitanti += p.abitanti
             soldati += p.soldati
-            if p.abitanti * 1.2 < ABITANTI_PER_PROVINCIA:
+            if p.abitanti < ABITANTI_PER_PROVINCIA:
                 p.abitanti = int(p.abitanti * CRESCITA_POPOLAZIONE)
         for p in self.azioni.keys():
             for azione in self.azioni[p]:
@@ -147,38 +147,12 @@ class Stato:
     def aggiungi_provincia(self, provincia):
         if provincia.stato != None:
             provincia.stato.elenco_province.remove(provincia)
-            provincia.stato.aggiorna_forma()
+            if provincia.stato in self.guerra:
+                provincia.invasa = True
         provincia.stato = self
         self.elenco_province.append(provincia)
 
     # aggiunge allo Stato tutte le province confinanti non appartenenti a nessuno; ritorna le province aggiunte
-    '''
-    def espandi(self, confini=None):
-
-        province_aggiunte = 0
-        massimo_province = 6
-        prov_da_scegliere = confini.copy()
-        while len(prov_da_scegliere) > 0:
-            p = random.choice(prov_da_scegliere)
-            vicine = p.province_vicine()
-
-            interna = True
-            for v in vicine:
-                if v != None and v.stato == None:
-                    self.aggiungi_provincia(v)
-                    province_aggiunte += 1
-                if v != None and v.stato != self.stato:
-                    interna = False
-                if province_aggiunte == massimo_province:
-                    return massimo_province
-            if interna:
-                confini.remove()
-
-            prov_da_scegliere.remove(p)
-
-        return province_aggiunte
-    '''
-
     def espandi(self, confini):
         massimo_province = 6
 
@@ -288,7 +262,6 @@ class Stato:
             return
 
         self.soldi = int(self.soldi - COSTO_SOLDATO * soldati)
-        provincia.abitanti -= soldati
 
         azione = {
             'azione': 'arruola',
@@ -298,7 +271,7 @@ class Stato:
             self.azioni[provincia] = [azione]
         else:
             self.azioni[provincia].append(azione)
- 
+    
     def aggiungi_spostamento(self, soldati, origine, destinazione):
         percorso = trova_percorso(origine, destinazione)
         if len(percorso) > 2:
@@ -369,6 +342,10 @@ class Stato:
             'province_conquistate': []
         }
 
+    def sciogli_soldati(self, soldati, provincia):
+        provincia.abitanti += soldati
+        provincia.soldati -= soldati
+
 class Provincia:
 
     def __init__(self, x, y, raggio, riga, colonna):
@@ -386,6 +363,7 @@ class Provincia:
         self.stato = None
         self.abitanti = ABITANTI_PER_PROVINCIA
         self.soldati = 0
+        self.invasa = False
 
         # province vicine
         self.est = None
