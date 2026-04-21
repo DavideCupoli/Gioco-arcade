@@ -7,7 +7,7 @@ mentre gli altri sono controllati da BOT.
 <p>
 Uno Stato può conquistare la provincia di uno Stato nemico spostandovi il proprio esercito:
 se il numero di soldati è maggiore rispetto a quello dell'esercito avversario, il controllo della provincia viene trasferito
- all'altro Stato. giocatori possono effettuare un numero di azioni indicato dalla freccia verde. Le azioni vengono poi
+ all'altro Stato. Ogni stato può pianificare un certo numero di azioni, indicato dalla freccia verde. Le azioni vengono poi
   soddisfatte quando si passa al turno successivo.
 Gli Stati sono tenuti a gestire quanti soldi hanno e il loro bilancio (indicato dalla bilancia). Questi valori possono essere negativi nel caso in cui le spese superino le entrate.
 </p>
@@ -29,7 +29,7 @@ TASTO O: caricamento del file .json
 BOTTONE ARRUOLA: permette di arruolare dei soldati nelle province selezionate appartenenti al tuo Stato. Seleziona la provincia in cui desideri arruolare i soldati e, dopo aver cliccato il bottone, apparirà una barra progressiva che permette di selezionare quante truppe devono essere arruolate; successivamente, clicca INVIO per confermare l'azione. Apparirà un numero verde, che indica quante truppe sono state arruolate.
 <br>
 <br>
-BOTTONE MUOVI: permette di spostare delle truppe a un'altra provincia appartenente al tuo Stato o a uno Stato nemico. Seleziona la provincia della truppa che vuoi spostare; dopo aver cliccato il bottone muovi seleziona quanti soldati spostare; successivamente, seleziona la provincia di destinazione. Apparirà un numero rosso nella provincia di destinazione, che indica quante truppe arriveranno nel prossimo turno.
+BOTTONE MUOVI: permette di spostare delle truppe a un'altra provincia appartenente al tuo Stato o a uno Stato nemico. Seleziona la provincia della truppa che vuoi spostare; dopo aver cliccato il bottone muovi, seleziona quanti soldati spostare; successivamente, seleziona la provincia di destinazione. Apparirà un numero rosso nella provincia di destinazione, che indica quante truppe arriveranno nel prossimo turno.
 <br>
 <br>
 BOTTONE DICHIARA GUERRA: permette di dichiarare guerra allo Stato della provincia selezionata.
