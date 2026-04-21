@@ -59,7 +59,7 @@ def riconverti_azioni(azioni, mappa):
 
 # trasforma un colore da tuple (es. (255, 255, 255)) a esadecimale (es. 0xff0xff0xff)
 def converti_colore(colore):
-    return f'{hex(colore[0])},{hex(colore[1])},{hex(colore[2])}'
+    return f'{colore[0]},{colore[1]},{colore[2]}'
 
 # identifica gli stati in guerra con dei colori e le province con riga e colonna
 def converti_guerra(guerra):

@@ -43,7 +43,6 @@ class BarraProgressiva(arcade.gui.UIWidget):
         self.value = value
         self.interfaccia = interfaccia
 
-        # trigger a render when the value changes
         arcade.gui.bind(self, "value", self.trigger_render)
 
     def on_event(self, event):
@@ -56,9 +55,6 @@ class BarraProgressiva(arcade.gui.UIWidget):
                 self.value = max(0, min(1, (x - self.position.x) / self.width))
 
     def do_render(self, surface: arcade.gui.Surface):
-        """Draw the actual progress bar."""
-        # this will set the viewport to the size of the widget
-        # so that 0,0 is the bottom left corner of the widget content
         self.prepare_render(surface)
 
         colore = (255, 255, 0)
@@ -67,7 +63,6 @@ class BarraProgressiva(arcade.gui.UIWidget):
         elif self.value > 0.5:
             colore = (255, 255 * (1 - (self.value - 0.5) * 2), 0)
 
-        # Draw the actual bar
         arcade.draw_lbwh_rectangle_filled(
             0,
             0,
@@ -199,7 +194,7 @@ class BottoneSciogli(Bottone):
         if ui.province_multiple:
             province = ui.province_selezionate.copy()     
         for p in province:
-            if p.stato != ui.stato or p.soldati < 0:
+            if p.stato != ui.stato or p.soldati <= 0:
                 return
 
         ui.sciogli = True

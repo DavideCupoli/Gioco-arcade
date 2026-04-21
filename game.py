@@ -77,8 +77,6 @@ class GameView(arcade.View):
         # tempo di aggiornamento fps
         self.fps_time = 0
         
-        self.loop = False
-
         self.shift_premuto = False
 
         self.sfondo = [[None, None], [None, None]]
@@ -115,8 +113,6 @@ class GameView(arcade.View):
                     if s.elenco_province[0] == self.mappa.province[r][c]:
                         posizione_valida = False
                         break
-
-                posizione_valida |= len(self.stati) == 0
 
             provincia = self.mappa.province[r][c]
             stato.aggiungi_provincia(provincia)
@@ -234,6 +230,25 @@ class GameView(arcade.View):
             2
         )
 
+        if len(self.interfaccia.province_selezionate) >= 1:
+            arcade.draw_lbwh_rectangle_filled(
+                50,
+                WINDOW_HEIGHT // 2,
+                70,
+                30,
+                (20, 20, 20, 200)
+            )
+
+            arcade.draw_text(
+                str(len(self.interfaccia.province_selezionate)),
+                50,
+                WINDOW_HEIGHT // 2,
+                color=arcade.color.WHITE,
+                font_size=30,
+                align='center',
+                width=70
+            )
+
         x = WINDOW_WIDTH / 2
         y = WINDOW_HEIGHT / 6 * 5
         larghezza = 30
@@ -329,16 +344,6 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time):
         
-        if self.loop:
-            self.interfaccia.resetta()
-
-            self.nuovo_turno(self.interfaccia.stato)
-            gestisci_bot(self)
-            self.stati[self.indice_truppe].renderizza_truppe()
-            
-            for i in self.stati:
-                i.aggiorna_forma()
-
         self.interfaccia.etichetta_soldi.aggiorna_testo(
             converti_soldi(self.stati[self.indice_truppe].soldi)
         )
@@ -381,10 +386,6 @@ class GameView(arcade.View):
             self.turno_stato = 0
         
     def on_key_press(self, key, key_modifiers):
-
-        if key == arcade.key.Z:
-            self.loop = not self.loop
-            print(f'Loop: {self.loop}')
 
         if key == arcade.key.I:
             salva_dati(self)
@@ -477,9 +478,6 @@ class GameView(arcade.View):
             self.shift_premuto = True
 
     def on_key_release(self, key, key_modifiers):
-        """
-        Called whenever the user lets off a previously pressed key.
-        """
         # la camera non si sposta più quando vengono rilasciati i tasti delle frecce
         if key == arcade.key.UP:
             self.cam_direction[1] = 0
@@ -535,7 +533,6 @@ class GameView(arcade.View):
                     self.interfaccia.muovi_esercito()
      
 def main():
-    """ Main function """
 
     # Create a window class. This is what actually shows up on screen
     window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)

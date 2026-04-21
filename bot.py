@@ -4,7 +4,7 @@ from costanti import *
 
 # GESTIONE BOT
 
-# riordina province in base a quante province nemiche confinanti hanno in ordine decrescente
+# riordina province in base a quante province nemiche confinanti hanno in ordine crescente
 def riordina_province(province):
     lista = []
     for i in range(len(province)):
@@ -138,7 +138,6 @@ def gestisci_bot(gioco):
             gioco.turno_stato -= 1
             gioco.indice_truppe = 0
             gioco.nuovo_turno(stato)
-            return
         
         if stato.guerra == {}:
             sciogli(stato)

@@ -292,13 +292,19 @@ class Stato:
             s = spostamenti[i]
             origine = s['percorso'].pop(0)
             destinazione = s['percorso'][0]
-            if origine.soldati < s['soldati']:
-                self.muovi_soldati(origine.soldati, origine, destinazione)
-            else:
-                self.muovi_soldati(s['soldati'], origine, destinazione)
-            if len(s['percorso']) == 1:
+
+            self.muovi_soldati(min(origine.soldati, s['soldati']), origine, destinazione)
+
+            if (len(s['percorso']) == 1 or
+                (not destinazione.stato in self.guerra and
+                destinazione.stato != self)
+                ):
                 spostamenti.pop(i)
             else:
+                if origine.soldati < s['soldati']:
+                    self.muovi_soldati(origine.soldati, origine, destinazione)
+                else:
+                    self.muovi_soldati(s['soldati'], origine, destinazione)
                 i += 1
         
     # aggiunge un'azione per muovere i soldati
@@ -373,9 +379,6 @@ class Provincia:
         self.sudest = None
         self.sudovest = None
 
-        # ordini da eseguire
-        self.azioni = []
-        
     # restituisce le province vicine della provincia
     def province_vicine(self):
         return [
@@ -476,8 +479,8 @@ class Mappa:
     def disegna_scacchiera(self):
 
         linee = []
-        for i in self.province:
-            for j in i:
+        for p in self.province:
+            for j in p:
                 punti = j.esagono.punti
                 for i in range(len(punti)):
                     start = punti[i]
