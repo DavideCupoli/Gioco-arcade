@@ -205,7 +205,7 @@ class GameView(arcade.View):
         )
 
         arcade.draw_text(
-            'Il tuo stato',
+            'Your State',
             20,
             120,
             arcade.color.WHITE,
@@ -283,7 +283,7 @@ class GameView(arcade.View):
             )
 
             arcade.draw_text(
-                'Stati nemici:',
+                'Enemies:',
                 x - 130,
                 y + 5,
                 arcade.color.WHITE,
@@ -361,8 +361,8 @@ class GameView(arcade.View):
         c[0] += self.cam_direction[0] * delta_time * CAM_SPEED / self.camera.zoom
         c[1] += self.cam_direction[1] * delta_time * CAM_SPEED / self.camera.zoom
 
-        c[0] = max(500, min(1500, c[0]))
-        c[1] = max(200, min(1200, c[1]))
+        c[0] = max(000, min(2000, c[0]))
+        c[1] = max(000, min(2000, c[1]))
 
         self.camera.position = (c[0], c[1])
         

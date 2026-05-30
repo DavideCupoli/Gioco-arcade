@@ -293,8 +293,6 @@ class Stato:
             origine = s['percorso'].pop(0)
             destinazione = s['percorso'][0]
 
-            self.muovi_soldati(min(origine.soldati, s['soldati']), origine, destinazione)
-
             if (len(s['percorso']) == 1 or
                 (not destinazione.stato in self.guerra and
                 destinazione.stato != self)

@@ -2,10 +2,10 @@ import arcade
 
 # informazioni legate al gioco
 
-MAPPA_RIGHE = 20
-MAPPA_COLONNE = 20
+MAPPA_RIGHE = 30
+MAPPA_COLONNE = 30
 RAGGIO = 50
-NUM_STATI = 10
+NUM_STATI = 13
 
 PUNTI_AZIONE = 20
 FONT_SIZE_TRUPPE = 14
@@ -24,7 +24,7 @@ MOSTRA_FPS = False
 # informazioni della finestra di gioco 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 600
-WINDOW_TITLE = "The Age of Conquests"
+WINDOW_TITLE = "Venetkens"
 
 # velocità con cui si sposta la visuale
 CAM_SPEED = 200
@@ -45,7 +45,10 @@ COLORI_STATI = [
     arcade.color.GRAY,
     arcade.color.PINK,
     arcade.color.BLUE,
-    arcade.color.CARIBBEAN_GREEN
+    arcade.color.CARIBBEAN_GREEN,
+    arcade.color.ARSENIC,
+    arcade.color.ASH_GREY,
+    arcade.color.AVOCADO
 ]
 
 # direzioni

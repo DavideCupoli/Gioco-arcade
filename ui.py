@@ -263,27 +263,27 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         self.bottone_arruola = BottoneArruola(
             120,
             50,
-            'Arruola',
+            'Enlist',
             self
         )
         self.bottone_muovi = BottoneMuovi(
             120,
             50,
-            'Muovi',
+            'Move',
             self
         )
 
         self.bottone_guerra = BottoneGuerra(
             120,
             50,
-            'Dichiara guerra',
+            'Declare war',
             self
         )
 
         self.bottone_sciogli = BottoneSciogli(
             120,
             50,
-            'Sciogli',
+            'Remove',
             self
         )
 
@@ -446,8 +446,12 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         province = [self.provincia_selezionata]
         if self.province_multiple:
             province = self.province_selezionate.copy()
+        self.arruola = True
         for p in province:
-            if p.stato != self.stato:
+            if p.stato != self.stato or not (
+                self.soldati_barra(p) > 0 and self.stato.punti_azione > 0
+            ):
+                self.arruola = False
                 return
             if p in self.stato.azioni:
                 azione = None
@@ -462,7 +466,6 @@ class GestoreInterfaccia(arcade.gui.UIManager):
         if self.barra.value == 0:
             self.barra.value = 1
         self.barra.visible = True
-        self.arruola = True
         self.bottone_muovi.visible = False
         self.bottone_arruola.visible = False
         self.bottone_guerra.visible = False
@@ -477,7 +480,7 @@ class GestoreInterfaccia(arcade.gui.UIManager):
             province = self.province_selezionate.copy()
         for p in province:
             soldati = self.soldati_barra(p)
-            if soldati != 0 and self.stato.punti_azione > 0:
+            if soldati > 0 and self.stato.punti_azione > 0:
                 self.stato.arruola_soldati(soldati, p)
         self.stato.renderizza_truppe()
         self.arruola = False

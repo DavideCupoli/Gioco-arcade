@@ -1,41 +1,46 @@
-<h1 align="center">The Age of Conquests</h1>
+<h1 align="center">Venetkens</h1>
 <p>
-The Age of Conquests è un gioco di strategia militare a turni. E' stato realizzato in python con la libreria arcade. Lo scopo del gioco è guidare uno Stato e invadere tutti gli altri Stati.
-La mappa è costituita da diverse province, i cui confini hanno una forma esagonale. Ogni provincia appartiene a uno Stato. Il giocatore comanda uno Stato,
-mentre gli altri sono controllati da BOT.
+Venetkens is a military strategy game turn based. It has been made in python with arcade library. The aim of the game is to lead a State and invade the other ones.
+The map is made by various provinces, whose borders have an hexagonal shape. Every province belongs to a State. The player leads
+a State, while others are controlled by BOT.
 </p>
 <p>
-Uno Stato può conquistare la provincia di uno Stato nemico spostandovi il proprio esercito:
-se il numero di soldati è maggiore rispetto a quello dell'esercito avversario, il controllo della provincia viene trasferito
- all'altro Stato. Ogni stato può pianificare un certo numero di azioni, indicato dalla freccia verde. Le azioni vengono poi
-  soddisfatte quando si passa al turno successivo.
-Gli Stati sono tenuti a gestire quanti soldi hanno e il loro bilancio (indicato dalla bilancia). Questi valori possono essere negativi nel caso in cui le spese superino le entrate.
+A State can conquer the province of an enemy State by moving its own army:
+if the number of the soldiers is bigger than enemy's army one, province's control is transferred to the other State.
+Every State can plan a certain number of actions, indicated by the green arrow. The actions are then fulfilled when you pass to the next turn.
+States can manage their money and their balance. These values can be negative in the case expenses exceed earnings. 
 </p>
 
-**COMANDI PRINCIPALI**
+**MAIN COMMANDS**
 
-FRECCETTE IN BASSO: movimento della visuale
+ARROW KEYS: visual movement
 <br>
 <br>
-TASTI PIU' e MENO: zoom
+PLUS/MINUS KEYS: zoom
 <br>
 <br>
-TASTO I: salvataggio del file .json
+I key: game saving
 <br>
 <br>
-TASTO O: caricamento del file .json
+O key: game loading
 <br>
 <br>
-BOTTONE ARRUOLA: permette di arruolare dei soldati nelle province selezionate appartenenti al tuo Stato. Seleziona la provincia in cui desideri arruolare i soldati e, dopo aver cliccato il bottone, apparirà una barra progressiva che permette di selezionare quante truppe devono essere arruolate; successivamente, clicca INVIO per confermare l'azione. Apparirà un numero verde, che indica quante truppe sono state arruolate.
+SHIFT: it allows you to select multiple provinces
 <br>
 <br>
-BOTTONE MUOVI: permette di spostare delle truppe a un'altra provincia appartenente al tuo Stato o a uno Stato nemico. Seleziona la provincia della truppa che vuoi spostare; dopo aver cliccato il bottone muovi, seleziona quanti soldati spostare; successivamente, seleziona la provincia di destinazione. Apparirà un numero rosso nella provincia di destinazione, che indica quante truppe arriveranno nel prossimo turno.
+ENLIST BUTTON: it allows you to enlist soldiers in the selected provinces that belong to your State. Select the province where you want to enlist the soldiers and, after you've clicked the button, it will appear a progressive bar that lets select how many troops have to be enlisted; after that, click ENTER to confirm the action. It will appear a green number, which indicates how many
+troops have been enlisted.
+
 <br>
 <br>
-BOTTONE DICHIARA GUERRA: permette di dichiarare guerra allo Stato della provincia selezionata.
+MOVE BUTTON: it allows you to move troops to a province owned by your State or by an enemy State. Select the province of the troop that you want to move; after you've clicked the button, select how many soldiers you want to move; then, select the destination's province. It will appear a red number in the destination's province, that indicates how many troops will come in the next turn.
 <br>
 <br>
-BOTTONE SCIOGLI: permette di sciogliere una truppa nel caso in cui si debba abbassare il costo di mantenimento dell'esercito. Il procedimento è lo stesso del comando arruola.
+DECLARE WAR BUTTON: it lets to declare war to the State of the selected province.
 <br>
 <br>
-SPAZIO: permette di passare al turno successivo.
+REMOVE BUTTON: it allows you to remove a troop in the case you must decrease the army's mantainment cost. The procedure is the same
+of the Enlist command.
+<br>
+<br>
+SPACE: it lets to pass to the next turn.
